@@ -1,89 +1,229 @@
 # Agency Web Stack
 
-Full-stack agency website template with an interactive setup wizard. Choose your services, generate secrets, start Docker — one command.
-
-![Node.js](https://img.shields.io/badge/node-%3E%3D20-brightgreen?logo=node.js)
-![pnpm](https://img.shields.io/badge/pnpm-%3E%3D10-orange?logo=pnpm)
-![License](https://img.shields.io/badge/license-MIT-blue)
-![Next.js](https://img.shields.io/badge/Next.js-16.2.2-black?logo=next.js)
-![Astro](https://img.shields.io/badge/Astro-6.1.4-purple?logo=astro)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.2.2-38bdf8?logo=tailwindcss)
-
----
-
-## What's Included
-
-| Tool | Version | Purpose | Required |
-|------|---------|---------|----------|
-| Astro | 6.1.4 | SEO/marketing sites, static output with React islands | At least one framework |
-| Next.js | 16.2.2 | Dashboards, apps, admin panels | At least one framework |
-| Payload CMS | 3.81.0 | Headless CMS with admin UI, embedded in Next.js | Optional (requires Next.js + Supabase) |
-| Tailwind CSS | 4.2.2 | Utility-first CSS, configured via CSS `@import` | Included with frameworks |
-| shadcn/ui | 4.1.2 | 16 pre-installed UI components | Included with frameworks |
-| Motion | 12.38.0 | Animation library (import from `motion/react`) | Included with frameworks |
-| Supabase | CLI 2.85 / JS 2.101 | Database + Auth + Storage, full local Docker dev stack | Optional |
-| Sentry | 10.47.0 | Error tracking configured in both frameworks | Optional |
-| PostHog | 1.364.7 | Product analytics, session recordings, feature flags | Optional |
-| Resend | 6.10.0 | Transactional email via API | Optional |
-| Vercel CLI | 50.40.0 | Deployment platform | Optional (global install) |
-| Twenty CRM | 1.20.0 | Self-hosted open-source CRM via Docker | Optional |
-| `@template/shared` | workspace | Shared Supabase, PostHog, and Resend clients | Included |
-| AI Website Cloner | — | Tool for cloning and adapting existing sites | Optional |
+Everything you need to build websites for clients. One command to set up, interactive wizard to choose your tools.
 
 ---
 
 ## Quick Start
 
-### Prerequisites
+Pick the option that suits you best. Each one ends with a working project.
 
-| Requirement | Version | Notes |
-|-------------|---------|-------|
-| Node.js | >= 20 | Astro requires >= 22.12.0 |
-| pnpm | >= 10 | `npm install -g pnpm` |
-| Docker Desktop | latest | Required for Supabase and Twenty CRM |
-| Vercel CLI | latest | Optional — `npm install -g vercel` |
+### Option A -- One Command (recommended)
 
-### Option 1: npx (recommended after publishing)
+Open your Terminal app (on Mac, search for "Terminal" in Spotlight) and paste this command.
+Replace `my-project` with whatever you want to name your project:
 
 ```bash
-npx @agency/create-site my-project
-npx @agency/create-site my-project --preset=marketing
+curl -fsSL https://raw.githubusercontent.com/syedqzaidi/agency-web-stack/main/scripts/bootstrap.sh | bash -s -- my-project
 ```
 
-### Option 2: Clone + Wizard
+This will:
+
+1. Download the template to a new folder called `my-project`
+2. Walk you through choosing which tools you want (interactive wizard)
+3. Generate secure passwords automatically
+4. Start all your background services (database, email, etc.)
+5. Tell you the URLs to open in your browser
+
+The whole process takes about 5 minutes on first run (mostly downloading).
+
+### Option B -- One Command with a Preset (skip the wizard)
+
+If you already know what you want, add a preset name to skip the wizard entirely.
+Replace `my-project` with your project name:
 
 ```bash
-git clone https://github.com/syedqzaidi/agency-web-stack.git my-project
-cd my-project
-node scripts/create-project.mjs
-./scripts/init-project.sh "My Project"
+curl -fsSL https://raw.githubusercontent.com/syedqzaidi/agency-web-stack/main/scripts/bootstrap.sh | bash -s -- my-project --preset=marketing
 ```
 
-### Option 3: Clone + Flags (no wizard)
+Available presets:
 
-```bash
-git clone https://github.com/syedqzaidi/agency-web-stack.git my-project
-cd my-project
-node scripts/create-project.mjs my-project --preset=marketing --no-install
-./scripts/init-project.sh "My Project"
-```
+| Preset | Best For | What You Get |
+|--------|----------|--------------|
+| `marketing` | SEO and marketing websites | Astro + Supabase + Sentry + PostHog |
+| `dashboard` | Admin panels and web apps | Next.js + Payload CMS + Supabase + Sentry |
+| `full` | Everything included | All 14 tools enabled |
+| `minimal` | Simple static website | Just Astro with Tailwind CSS (no backend) |
+| `nextjs-minimal` | Simple Next.js app | Just Next.js with Tailwind CSS (no backend) |
+| `both-frameworks` | Multi-site projects | Both Astro and Next.js with Supabase and Sentry |
+
+### Option C -- Manual Setup (step by step)
+
+If you prefer to run each step yourself:
+
+1. Download the template:
+
+   ```bash
+   git clone https://github.com/syedqzaidi/agency-web-stack.git my-project
+   cd my-project
+   ```
+
+2. Install dependencies (libraries the project needs):
+
+   ```bash
+   pnpm install
+   ```
+
+3. Choose your tools with the interactive wizard:
+
+   ```bash
+   node scripts/create-project.mjs
+   ```
+
+4. Start your background services and generate passwords:
+
+   ```bash
+   ./scripts/init-project.sh "my-project"
+   ```
 
 ---
 
-## Presets
+## Before You Begin (Prerequisites)
 
-| Preset | Command | Includes |
-|--------|---------|----------|
-| `full` | `--preset=full` | Everything |
-| `marketing` | `--preset=marketing` | Astro + Supabase + Sentry + PostHog |
-| `dashboard` | `--preset=dashboard` | Next.js + Payload CMS + Supabase + Sentry |
-| `both-frameworks` | `--preset=both-frameworks` | Astro + Next.js + Supabase + Sentry |
-| `minimal` | `--preset=minimal` | Astro only (Tailwind + shadcn) |
-| `nextjs-minimal` | `--preset=nextjs-minimal` | Next.js only (Tailwind + shadcn) |
+You need these programs installed on your computer before starting. If you used Option A or B above, the bootstrap script will check for these and warn you if anything is missing.
+
+### 1. Node.js (version 20 or higher)
+
+Node.js is the engine that runs JavaScript outside of a web browser. Your website's build tools depend on it.
+
+- Download from: https://nodejs.org
+- Choose the **LTS** version (the one labeled "Recommended for Most Users")
+- To check if it is already installed, open Terminal and type:
+
+  ```bash
+  node --version
+  ```
+
+  You should see something like `v20.x.x` or higher.
+
+### 2. pnpm (package manager)
+
+pnpm is a tool that downloads and manages the libraries your project uses. It is faster and more efficient than the default `npm`.
+
+- After installing Node.js, open Terminal and run:
+
+  ```bash
+  npm install -g pnpm
+  ```
+
+- The bootstrap command (Option A/B) will install this automatically if it is missing.
+
+### 3. Docker Desktop
+
+Docker runs small, isolated servers on your computer -- this is how the database, email testing tool, and CRM run locally without you having to install each one separately.
+
+- Download from: https://www.docker.com/products/docker-desktop/
+- After installing, open the Docker Desktop app and **wait until it says "Running"** in the bottom-left corner
+- Docker is needed for Supabase (database), Mailpit (test emails), and Twenty CRM
+
+### 4. Git
+
+Git is a tool for downloading and tracking changes to code. The bootstrap command uses it behind the scenes.
+
+- Usually pre-installed on Mac. To check, open Terminal and type:
+
+  ```bash
+  git --version
+  ```
+
+- If not installed, download from: https://git-scm.com
+
+---
+
+## Starting Your Servers
+
+**IMPORTANT: Your websites and services will not be accessible until you start the servers. The URLs shown during setup will not load until you complete this step.**
+
+The init script (step 4 of setup) starts Docker services automatically -- these are the background services like your database and email inbox. However, the development servers where you actually see your website need to be started separately.
+
+### To start your Astro website:
+
+```bash
+pnpm dev:astro
+```
+
+### To start your Next.js app (includes CMS admin panel):
+
+```bash
+pnpm dev:next
+```
+
+### To start both at once:
+
+Open two separate Terminal windows. Run one command in each window. Both servers need to stay running while you work.
+
+### What you will see:
+
+When a server starts successfully, it prints a URL in the Terminal. Open that URL in your browser to see your website. The URLs look something like this:
+
+```
+http://localhost:4487    (your Astro website)
+http://localhost:3187    (your Next.js app)
+http://localhost:3187/admin  (your CMS admin panel)
+```
+
+**Note:** The exact port numbers (the numbers after `localhost:`) are unique to your project. They are randomly assigned during setup so that multiple projects do not conflict. Check the output when you run the start command, or look in the `.ports` file in your project folder.
+
+---
+
+## Your Service URLs
+
+After running the init script and starting dev servers, these are the services you can access:
+
+| Service | What It Is | How to Access |
+|---------|-----------|---------------|
+| Astro Website | Your marketing or SEO website | Open the URL shown when you run `pnpm dev:astro` |
+| Next.js App | Your dashboard or web application | Open the URL shown when you run `pnpm dev:next` |
+| CMS Admin Panel | Where you manage page content, blog posts, etc. | Go to your Next.js URL and add `/admin` to the end |
+| Supabase Studio | Visual tool for managing your database tables and users | URL shown during setup (usually includes port 54323) |
+| Mailpit | A fake email inbox for testing -- emails your app sends appear here | URL shown during setup (usually includes port 54324) |
+| Twenty CRM | Customer relationship manager for tracking contacts and deals | URL shown during setup (usually port 3001) |
+
+All URLs are printed at the end of the setup process and saved in a `.ports` file in your project folder. Open that file any time you need to find a URL.
+
+---
+
+## What's Included
+
+This template bundles 14 tools so you do not have to find, install, and configure them individually.
+
+| Tool | Version | What It Does | Required? |
+|------|---------|-------------|-----------|
+| Astro | 6.1.4 | Builds fast marketing and SEO websites. Great for content-heavy pages | At least one framework required |
+| Next.js | 16.2.2 | Builds interactive web apps, dashboards, and admin panels | At least one framework required |
+| Payload CMS | 3.81.0 | Content management system -- lets non-developers edit page content through a visual admin panel | Optional (needs Next.js + Supabase) |
+| Tailwind CSS | 4.2.2 | A styling system that lets you design pages by adding class names directly in HTML | Included with frameworks |
+| shadcn/ui | 4.1.2 | 16 pre-built interface components (buttons, forms, tables, dialogs, etc.) | Included with frameworks |
+| Motion | 12.38.0 | Adds animations and transitions to page elements | Included with frameworks |
+| Supabase | CLI 2.85 / JS 2.101 | Database, user login/registration, and file storage -- all running locally on your computer | Optional |
+| Sentry | 10.47.0 | Catches and reports errors so you know when something breaks | Optional |
+| PostHog | 1.364.7 | Tracks how visitors use your website -- page views, clicks, session recordings | Optional |
+| Resend | 6.10.0 | Sends real emails (password resets, notifications, etc.) through a simple API | Optional |
+| Vercel CLI | 50.40.0 | Deploys your website to the internet with one command | Optional |
+| Twenty CRM | 1.20.0 | A customer relationship manager for tracking leads and deals, runs locally via Docker | Optional |
+| `@template/shared` | workspace | Pre-built code for connecting to Supabase, PostHog, and Resend from either framework | Included |
+| AI Website Cloner | -- | Tool for cloning and adapting the design of existing websites | Optional |
+
+---
+
+## Presets Reference
+
+Each preset is a pre-selected combination of tools. Use them with the `--preset=` flag to skip the interactive wizard.
+
+| Preset | Command | Frameworks | Backend | Integrations |
+|--------|---------|-----------|---------|-------------|
+| `full` | `--preset=full` | Astro + Next.js | Supabase + Payload CMS + Twenty CRM | Sentry + PostHog + Resend |
+| `marketing` | `--preset=marketing` | Astro | Supabase | Sentry + PostHog |
+| `dashboard` | `--preset=dashboard` | Next.js | Supabase + Payload CMS | Sentry |
+| `both-frameworks` | `--preset=both-frameworks` | Astro + Next.js | Supabase | Sentry |
+| `minimal` | `--preset=minimal` | Astro | None | None |
+| `nextjs-minimal` | `--preset=nextjs-minimal` | Next.js | None | None |
 
 ---
 
 ## CLI Flags Reference
+
+For advanced users who want full control without the wizard. Combine any of these flags:
 
 ```
 Frameworks:   --astro, --nextjs
@@ -92,170 +232,279 @@ Integrations: --sentry, --posthog, --resend
 Options:      --all, --name=<name>, --preset=<name>, --no-install, --no-init, --help
 ```
 
+Example -- create a project with Astro, Supabase, and Sentry, skipping the wizard:
+
+```bash
+node scripts/create-project.mjs my-project --astro --supabase --sentry
+```
+
+---
+
+## Stopping Services
+
+### Stop background services (database, CRM, etc.):
+
+```bash
+pnpm stop:supabase
+cd docker/twenty && docker compose down
+```
+
+### Stop a development server:
+
+Press `Ctrl+C` in the Terminal window where it is running.
+
+---
+
+## Troubleshooting
+
+### "I get 'command not found' when I paste the curl command"
+
+You need to open the Terminal app first. On Mac, press `Cmd + Space`, type "Terminal", and press Enter. Then paste the command.
+
+If `curl` itself is not found (rare), install the Xcode command line tools:
+
+```bash
+xcode-select --install
+```
+
+### "The URL shows 'connection refused' or the page won't load"
+
+Your server is not running. The URLs only work while the server is actively running in a Terminal window.
+
+1. Make sure you ran `pnpm dev:astro` or `pnpm dev:next` and that the Terminal shows it is running
+2. Check that you are using the correct URL -- look at what the Terminal printed when the server started
+3. If you closed the Terminal window, the server stopped. Open a new Terminal, navigate to your project folder, and start it again
+
+### "Docker won't start" or "Cannot connect to the Docker daemon"
+
+1. Open the Docker Desktop application
+2. Wait until the bottom-left corner says "Running" (this can take 30-60 seconds)
+3. Try your command again
+
+If Docker Desktop is not installed, download it from https://www.docker.com/products/docker-desktop/
+
+### "Supabase won't start -- another project already running"
+
+Only one Supabase project can run at a time on your computer. Stop the other one first:
+
+```bash
+supabase stop --no-backup
+pnpm dev:supabase
+```
+
+### "Port conflict on startup"
+
+Another program is using the same port. Find out what:
+
+```bash
+lsof -i :<port-number>
+```
+
+Either close the conflicting program, or change the port in your project configuration.
+
+### "Payload admin shows a blank page or 404"
+
+1. Make sure Supabase is running: `pnpm dev:supabase`
+2. Make sure the Next.js server is running: `pnpm dev:next`
+3. Visit the admin URL (your Next.js URL + `/admin`) to complete first-run setup if you have not already
+
+### "'@template/shared' import errors"
+
+Run `pnpm install` from the project root folder (not inside a subfolder). This sets up the internal links between packages.
+
+```bash
+cd my-project
+pnpm install
+```
+
+### "Twenty CRM migration errors on first start"
+
+Twenty sometimes fails on first boot. Reset it and try again:
+
+```bash
+cd docker/twenty
+docker compose down -v
+docker compose up -d
+docker compose logs -f twenty
+```
+
+Note: `down -v` deletes all CRM data. The `start_period: 60s` health check means Twenty may show as unhealthy for up to a minute while it sets up -- this is normal.
+
+### "CSS not loading in Astro"
+
+Tailwind CSS v4 does not use a `tailwind.config.js` file. Check these three things:
+
+1. `@tailwindcss/vite` is listed in the `plugins` array in `astro.config.mjs`
+2. Your global CSS file contains `@import "tailwindcss";`
+3. That CSS file is imported in your layout
+
+If styles still do not appear, clear the cache:
+
+```bash
+rm -rf templates/astro-site/node_modules/.vite
+pnpm dev:astro
+```
+
 ---
 
 ## Project Structure
 
+This section is for developers who want to understand how the codebase is organized.
+
 ```
 agency-web-stack/
 ├── templates/
-│   ├── astro-site/          # Astro marketing/SEO template (port 4400)
+│   ├── astro-site/              # Astro marketing/SEO template
 │   │   └── src/
 │   │       ├── components/ui/   # shadcn/ui components
-│   │       ├── layouts/
-│   │       ├── lib/
-│   │       ├── pages/
-│   │       └── styles/
+│   │       ├── layouts/         # Page layout wrappers
+│   │       ├── lib/             # Utility functions
+│   │       ├── pages/           # Each file becomes a page on your site
+│   │       └── styles/          # Global CSS
 │   │
-│   └── next-app/            # Next.js app/dashboard template (port 3100)
+│   └── next-app/                # Next.js app/dashboard template
 │       └── src/
 │           ├── app/
-│           │   ├── (app)/       # Application routes
-│           │   ├── (payload)/   # Payload CMS admin routes
-│           │   └── api/         # API route handlers
+│           │   ├── (app)/       # Your application pages
+│           │   ├── (payload)/   # CMS admin panel pages
+│           │   └── api/         # Backend API endpoints
 │           ├── components/ui/   # shadcn/ui components
-│           ├── lib/
+│           ├── lib/             # Utility functions
 │           └── payload.config.ts
 │
 ├── packages/
-│   └── shared/              # @template/shared — shared service clients
+│   └── shared/                  # @template/shared -- reusable service clients
 │       └── src/
-│           ├── supabase/    # SSR-compatible Supabase client
-│           ├── posthog/     # PostHog init helper
-│           ├── resend/      # Resend client
-│           └── types/       # Shared TypeScript types
+│           ├── supabase/        # Database client
+│           ├── posthog/         # Analytics client
+│           ├── resend/          # Email client
+│           └── types/           # Shared TypeScript types
 │
 ├── supabase/
-│   ├── config.toml          # Local Supabase config (ports, auth settings)
-│   └── migrations/          # SQL migration files
+│   ├── config.toml              # Local database configuration
+│   └── migrations/              # Database schema changes
 │
 ├── docker/
 │   └── twenty/
-│       ├── docker-compose.yml  # Twenty CRM + Postgres + Redis
-│       └── .env                # Twenty APP_SECRET
+│       ├── docker-compose.yml   # Twenty CRM setup
+│       └── .env                 # Twenty CRM secrets
 │
-├── scripts/                 # Setup wizard and init scripts
+├── scripts/                     # Setup wizard and init scripts
 ├── tools/
-│   └── ai-website-cloner/   # AI-assisted site cloning tool
-├── docs/                    # Internal documentation
-├── .env.template            # Environment variable reference
-├── .mcp.json                # MCP server configuration (10 servers)
-├── package.json             # Root workspace scripts
-└── pnpm-workspace.yaml      # pnpm workspace definition
+│   └── ai-website-cloner/       # AI-assisted site cloning tool
+├── .env.template                # Reference list of all environment variables
+├── .mcp.json                    # AI assistant tool configuration
+├── package.json                 # Project scripts and dependencies
+└── pnpm-workspace.yaml          # Workspace configuration
 ```
-
----
-
-## Service URLs and Ports
-
-| Service | URL | Port | Start Command |
-|---------|-----|------|---------------|
-| Astro (dev) | http://localhost:4400 | 4400 | `pnpm dev:astro` |
-| Next.js (dev) | http://localhost:3100 | 3100 | `pnpm dev:next` |
-| Payload CMS Admin | http://localhost:3100/admin | 3100 | `pnpm dev:next` |
-| Supabase API | http://localhost:54321 | 54321 | `pnpm dev:supabase` |
-| Supabase DB (direct) | localhost:54322 | 54322 | `pnpm dev:supabase` |
-| Supabase Studio | http://localhost:54323 | 54323 | `pnpm dev:supabase` |
-| Supabase Mailpit | http://localhost:54324 | 54324 | `pnpm dev:supabase` |
-| Twenty CRM | http://localhost:3001 | 3001 | `docker compose up -d` (in `docker/twenty/`) |
 
 ---
 
 ## Environment Variables
 
-Copy `.env.template` into each template directory before starting:
+Environment variables are settings that your project reads at startup -- things like API keys, database addresses, and secret tokens. The setup wizard fills these in automatically, but you may need to update them later.
 
-```bash
-cp .env.template templates/astro-site/.env
-cp .env.template templates/next-app/.env
-```
+The reference file is `.env.template` in the project root. During setup, `.env` files are created in each template directory with the correct values.
 
-### Supabase
+### Supabase (Database and Auth)
 
-| Variable | Description |
-|----------|-------------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL. Local: `http://localhost:54321` |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Public anon key — printed by `pnpm dev:supabase` on first start |
-| `SUPABASE_SERVICE_ROLE_KEY` | Service role key (server-side only) — same output as above |
-| `PUBLIC_SUPABASE_URL` | Same as above, Astro prefix (`PUBLIC_`) |
-| `PUBLIC_SUPABASE_ANON_KEY` | Same as above, Astro prefix |
+| Variable | What It Is |
+|----------|-----------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Address of your Supabase database. Locally: `http://localhost:54321` |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Public key for browser-side database access (auto-generated) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Private admin key for server-side operations (auto-generated) |
+| `PUBLIC_SUPABASE_URL` | Same as above, for Astro projects |
+| `PUBLIC_SUPABASE_ANON_KEY` | Same as above, for Astro projects |
 
 ### Payload CMS
 
-| Variable | Description |
-|----------|-------------|
-| `PAYLOAD_SECRET` | Token signing secret. Generate: `openssl rand -hex 32` |
-| `DATABASE_URL` | Postgres URL. Default: `postgresql://postgres:postgres@localhost:54322/postgres` |
-| `NEXT_PUBLIC_SERVER_URL` | Public Next.js URL. Default: `http://localhost:3100` |
+| Variable | What It Is |
+|----------|-----------|
+| `PAYLOAD_SECRET` | Secret key for signing admin tokens (auto-generated) |
+| `DATABASE_URL` | Database connection address. Default: `postgresql://postgres:postgres@localhost:54322/postgres` |
+| `NEXT_PUBLIC_SERVER_URL` | Your website's public address. Default: `http://localhost:3100` |
 
-### Sentry
+### Sentry (Error Tracking)
 
-| Variable | Description |
-|----------|-------------|
-| `SENTRY_DSN` | DSN from your Sentry project settings |
-| `NEXT_PUBLIC_SENTRY_DSN` | Client-side DSN for Next.js |
-| `PUBLIC_SENTRY_DSN` | Client-side DSN for Astro |
-| `SENTRY_AUTH_TOKEN` | Auth token for sourcemap uploads (CI/build only) |
-| `SENTRY_ORG` | Your Sentry organization slug |
-| `SENTRY_PROJECT` | Your Sentry project slug |
+| Variable | What It Is |
+|----------|-----------|
+| `SENTRY_DSN` | Your Sentry project identifier (get from sentry.io) |
+| `NEXT_PUBLIC_SENTRY_DSN` | Same, for browser-side error reporting in Next.js |
+| `PUBLIC_SENTRY_DSN` | Same, for Astro |
+| `SENTRY_AUTH_TOKEN` | Auth token for uploading source maps during builds |
+| `SENTRY_ORG` | Your Sentry organization name |
+| `SENTRY_PROJECT` | Your Sentry project name |
 
-### PostHog
+### PostHog (Analytics)
 
-| Variable | Description |
-|----------|-------------|
-| `NEXT_PUBLIC_POSTHOG_KEY` | PostHog project API key (Next.js) |
-| `NEXT_PUBLIC_POSTHOG_HOST` | PostHog instance URL, e.g. `https://us.i.posthog.com` |
-| `PUBLIC_POSTHOG_KEY` | Same, Astro prefix |
-| `PUBLIC_POSTHOG_HOST` | Same, Astro prefix |
+| Variable | What It Is |
+|----------|-----------|
+| `NEXT_PUBLIC_POSTHOG_KEY` | Your PostHog project API key (Next.js) |
+| `NEXT_PUBLIC_POSTHOG_HOST` | PostHog server address, e.g. `https://us.i.posthog.com` |
+| `PUBLIC_POSTHOG_KEY` | Same, for Astro |
+| `PUBLIC_POSTHOG_HOST` | Same, for Astro |
 
-### Resend
+### Resend (Email)
 
-| Variable | Description |
-|----------|-------------|
+| Variable | What It Is |
+|----------|-----------|
 | `RESEND_API_KEY` | API key from resend.com |
 
 ### Twenty CRM
 
-| Variable | Description |
-|----------|-------------|
-| `TWENTY_API_URL` | Base URL of your Twenty instance. Default: `http://localhost:3001` |
+| Variable | What It Is |
+|----------|-----------|
+| `TWENTY_API_URL` | Address of your Twenty instance. Default: `http://localhost:3001` |
 | `TWENTY_API_KEY` | API key from Twenty Settings > API Keys |
+
+---
+
+## Scripts Reference
+
+Commands you can run from the project root:
+
+| Command | What It Does |
+|---------|-------------|
+| `pnpm dev:astro` | Start the Astro website in development mode |
+| `pnpm dev:next` | Start the Next.js app in development mode |
+| `pnpm build:astro` | Build the Astro website for production deployment |
+| `pnpm build:next` | Build the Next.js app for production deployment |
+| `pnpm dev:supabase` | Start the local database and related services |
+| `pnpm stop:supabase` | Stop the local database services |
+
+Commands you can run from inside a template folder (`templates/astro-site` or `templates/next-app`):
+
+| Command | What It Does |
+|---------|-------------|
+| `pnpm dev` | Start the development server |
+| `pnpm build` | Build for production |
+| `pnpm preview` | Preview the production build locally (Astro only) |
 
 ---
 
 ## Development Workflow
 
-### Starting Services
+This section covers common tasks once your project is set up.
 
-```bash
-# Start Supabase local stack (required for Next.js + Payload)
-pnpm dev:supabase
+### Adding UI Components
 
-# Start Twenty CRM (optional)
-cd docker/twenty && docker compose up -d && cd ../..
-
-# Start Astro template
-pnpm dev:astro
-
-# Start Next.js + Payload template
-pnpm dev:next
-```
-
-On first run of `pnpm dev:next`, visit `http://localhost:3100/admin` to create the initial Payload CMS admin user.
-
-### Adding shadcn/ui Components
+Both frameworks include shadcn/ui, a library of pre-built interface components. To add a new one:
 
 ```bash
 cd templates/astro-site
 pnpm dlx shadcn@latest add accordion
+```
 
+Or for Next.js:
+
+```bash
 cd templates/next-app
 pnpm dlx shadcn@latest add accordion
 ```
 
-Components are written to `src/components/ui/`. Pre-installed: `avatar`, `badge`, `button`, `card`, `dialog`, `dropdown-menu`, `form`, `input`, `label`, `navigation-menu`, `separator`, `sheet`, `sonner`, `table`, `tabs`, `field`.
+Components appear in `src/components/ui/`. 16 are pre-installed: avatar, badge, button, card, dialog, dropdown-menu, form, input, label, navigation-menu, separator, sheet, sonner, table, tabs, and field.
 
-### Creating Payload Collections
+### Creating Content Types in the CMS
 
 Edit `templates/next-app/src/payload.config.ts` and add to the `collections` array:
 
@@ -271,9 +520,11 @@ Edit `templates/next-app/src/payload.config.ts` and add to the `collections` arr
 }
 ```
 
-Payload auto-generates the database table and REST/GraphQL endpoints on next startup.
+Payload automatically creates the database table and API endpoints when you restart the server.
 
-### Using the Shared Package
+### Using Shared Code Between Frameworks
+
+The `@template/shared` package provides ready-made clients:
 
 ```typescript
 import { createClient } from "@template/shared/supabase";
@@ -283,164 +534,66 @@ import { resend } from "@template/shared/resend";
 
 ---
 
-## Scripts Reference
-
-### Root (run from project root)
-
-| Script | Description |
-|--------|-------------|
-| `pnpm dev:astro` | Start Astro dev server at http://localhost:4400 |
-| `pnpm dev:next` | Start Next.js + Payload dev server at http://localhost:3100 |
-| `pnpm build:astro` | Production build for Astro |
-| `pnpm build:next` | Production build for Next.js |
-| `pnpm dev:supabase` | Start Supabase local stack via Docker |
-| `pnpm stop:supabase` | Stop Supabase local stack |
-
-### Template-level (run from `templates/astro-site` or `templates/next-app`)
-
-| Script | Description |
-|--------|-------------|
-| `pnpm dev` | Start dev server |
-| `pnpm build` | Production build |
-| `pnpm preview` | Preview production build locally (Astro only) |
-
-### Docker (run from `docker/twenty/`)
-
-| Command | Description |
-|---------|-------------|
-| `docker compose up -d` | Start Twenty CRM stack in background |
-| `docker compose down` | Stop Twenty CRM stack |
-| `docker compose logs -f twenty` | Tail Twenty CRM logs |
-
----
-
-## MCP Servers
-
-`.mcp.json` ships pre-configured with 10 MCP servers for AI assistant access to documentation and APIs.
-
-| Server | Transport | What It Provides |
-|--------|-----------|-----------------|
-| `astro-docs` | HTTP (SSE) | Astro official documentation search |
-| `next-devtools` | stdio | Next.js DevTools — routes, performance, build analysis |
-| `shadcn` | HTTP (SSE) | shadcn/ui component documentation and registry |
-| `payload` | stdio | Payload CMS schema introspection and documentation |
-| `supabase-remote` | HTTP (SSE) | Supabase project management and SQL generation |
-| `vercel` | HTTP (SSE) | Vercel deployments, domains, environment variables |
-| `posthog` | HTTP (SSE) | PostHog analytics queries and feature flag management |
-| `sentry` | stdio | Sentry error search, issue triage, release management |
-| `resend` | stdio | Resend email sending and template management |
-| `twenty-crm` | stdio | Twenty CRM record and object management |
-
-Servers requiring authentication (Supabase, Vercel, PostHog, Sentry, Resend, Twenty) will prompt for credentials on first use.
-
----
-
 ## Deployment
 
-### Vercel
+### Deploying to Vercel
 
-1. Push the repository to GitHub.
-2. In Vercel, create a new project and import the repository.
-3. Set the **Root Directory** to `templates/astro-site` or `templates/next-app`.
-4. Add all environment variables from `.env.template` with production values.
-5. Deploy.
+1. Push your project to a GitHub repository
+2. Go to vercel.com and create a new project, then import your repository
+3. Set the **Root Directory** to `templates/astro-site` or `templates/next-app`
+4. Add your environment variables (copy from your `.env` files but use production values)
+5. Deploy
 
-For Next.js + Payload, additionally set:
-- `DATABASE_URL` — your Supabase cloud pooled connection string (for serverless)
-- `PAYLOAD_SECRET` — a new strong random secret
-- `NEXT_PUBLIC_SERVER_URL` — the deployed URL, e.g. `https://my-project.vercel.app`
+For Next.js + Payload CMS, also set:
 
-### Supabase Cloud
+- `DATABASE_URL` -- your Supabase cloud connection string
+- `PAYLOAD_SECRET` -- generate a new one with `openssl rand -hex 32`
+- `NEXT_PUBLIC_SERVER_URL` -- your deployed URL, e.g. `https://my-project.vercel.app`
+
+### Deploying Supabase
 
 ```bash
 pnpm supabase link --project-ref <your-project-ref>
 pnpm supabase db push
 ```
 
-### Twenty CRM on a VPS
+### Deploying Twenty CRM to a Server
 
-1. Copy `docker/twenty/docker-compose.yml` and `docker/twenty/.env` to your server.
-2. Generate a new `APP_SECRET`: `openssl rand -hex 32`
-3. Set `SIGN_IN_PREFILLED=false` and update `SERVER_URL`/`FRONT_BASE_URL` to your domain.
-4. Run `docker compose up -d`.
+1. Copy `docker/twenty/docker-compose.yml` and `docker/twenty/.env` to your server
+2. Generate a new secret: `openssl rand -hex 32` and update `.env`
+3. Set `SIGN_IN_PREFILLED=false` and update `SERVER_URL`/`FRONT_BASE_URL` to your domain
+4. Run `docker compose up -d`
 
 ---
 
-## Troubleshooting
+## MCP Servers (AI Assistant Integration)
 
-### Port conflict on startup
+The `.mcp.json` file includes 10 pre-configured AI tool servers for use with AI coding assistants. These give your AI assistant direct access to documentation and APIs for each service.
 
-```bash
-lsof -i :<port>
-```
+| Server | What It Provides |
+|--------|-----------------|
+| `astro-docs` | Astro documentation search |
+| `next-devtools` | Next.js routes, performance, and build analysis |
+| `shadcn` | Component documentation and examples |
+| `payload` | CMS schema inspection and documentation |
+| `supabase-remote` | Database management and SQL generation |
+| `vercel` | Deployment and domain management |
+| `posthog` | Analytics queries and feature flags |
+| `sentry` | Error search and issue management |
+| `resend` | Email sending and templates |
+| `twenty-crm` | CRM record management |
 
-Kill the conflicting process, or change the port in `astro.config.mjs` (Astro) or the `dev` script in `templates/next-app/package.json` (Next.js).
-
-### Supabase won't start — another project already running
-
-Only one Supabase project can run per machine at a time:
-
-```bash
-supabase stop --no-backup
-pnpm dev:supabase
-```
-
-If containers are stuck after an unclean shutdown:
-
-```bash
-docker ps | grep supabase
-docker stop <container-id>
-```
-
-### Payload tables missing RLS policies
-
-Payload creates tables without Row Level Security. If you enable RLS globally and Payload API calls fail, either disable RLS on Payload-managed tables in Supabase Studio, or ensure `DATABASE_URL` uses the direct database port (54322) with the `postgres` superuser rather than the Supabase API port.
-
-### Twenty CRM migration errors on first start
-
-```bash
-cd docker/twenty
-docker compose down -v   # removes volumes — destroys all CRM data
-docker compose up -d
-docker compose logs -f twenty
-```
-
-The `start_period: 60s` health check means Twenty may show as unhealthy for up to a minute while migrations run — this is expected.
-
-### CSS not loading in Astro (Tailwind v4)
-
-Tailwind v4 in Astro does not use `tailwind.config.js`. Verify:
-
-1. `@tailwindcss/vite` is in the `plugins` array in `astro.config.mjs`.
-2. Your global CSS file contains `@import "tailwindcss";`.
-3. The CSS file is imported in your layout.
-
-Clear the Vite cache if styles still do not appear:
-
-```bash
-rm -rf templates/astro-site/node_modules/.vite
-pnpm dev:astro
-```
-
-### Payload admin shows a blank page or 404
-
-Ensure `pnpm dev:supabase` is running, `DATABASE_URL` points to port 54322, and visit `http://localhost:3100/admin` to complete the first-run setup if you haven't already.
-
-### `@template/shared` import errors
-
-Run `pnpm install` from the **project root**, not inside a template directory. The `pnpm-workspace.yaml` sets up the symlink automatically.
+Servers that need authentication (Supabase, Vercel, PostHog, Sentry, Resend, Twenty) will ask for credentials on first use.
 
 ---
 
 ## Contributing
 
-1. Fork the repository and create a feature branch.
-2. Follow the existing code style — TypeScript, Tailwind v4, no `tailwind.config.js`.
-3. Test your changes against both the Astro and Next.js templates where applicable.
-4. Open a pull request with a clear description of the change and why it belongs in the template.
-
----
+1. Fork the repository and create a feature branch
+2. Follow the existing code style -- TypeScript, Tailwind CSS v4, no `tailwind.config.js`
+3. Test changes against both Astro and Next.js templates where applicable
+4. Open a pull request describing what you changed and why
 
 ## License
 
-MIT — see [LICENSE](LICENSE) for details.
+MIT -- see [LICENSE](LICENSE) for details.
