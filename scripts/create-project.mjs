@@ -980,6 +980,19 @@ async function renameProject(projectName) {
     data.name = `@${slug}/shared`;
   });
 
+  // Update root package.json scripts to use new package names
+  await modifyJson('package.json', (data) => {
+    if (data.scripts) {
+      for (const [key, val] of Object.entries(data.scripts)) {
+        if (typeof val === 'string') {
+          data.scripts[key] = val
+            .replace('@template/astro-site', `@${slug}/astro-site`)
+            .replace('@template/next-app', `@${slug}/next-app`);
+        }
+      }
+    }
+  });
+
   // Update workspace references in template package.json files
   if (keepAstro) {
     await modifyJson('templates/astro-site/package.json', (data) => {
