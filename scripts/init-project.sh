@@ -465,6 +465,8 @@ section "Booting Next.js to trigger Payload CMS table creation"
 # Skip if Payload config doesn't exist (Payload or Next.js was not selected)
 NEXTJS_APP_DIR="${PROJECT_ROOT}/templates/next-app"
 PAYLOAD_CONFIG="${NEXTJS_APP_DIR}/src/payload.config.ts"
+NEXTJS_LOG="/tmp/${PROJECT_NAME}-nextjs-boot.log"
+NEXTJS_PID_FILE="/tmp/${PROJECT_NAME}-nextjs.pid"
 
 if [[ ! -f "${PAYLOAD_CONFIG}" ]]; then
   warn "Payload CMS was not selected — skipping Next.js boot step"
