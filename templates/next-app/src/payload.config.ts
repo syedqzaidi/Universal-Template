@@ -46,8 +46,14 @@ export default buildConfig({
   typescript: { outputFile: path.resolve(dirname, "payload-types.ts") },
   db: postgresAdapter({
     pool: {
-      // Local dev default points to Supabase local. Set DATABASE_URL in production.
-      connectionString: process.env.DATABASE_URL || "postgresql://postgres:postgres@127.0.0.1:54322/postgres",
+      // DATABASE_URL is set by init-project.sh with the correct port.
+      // No fallback — if missing, Payload should fail immediately rather than
+      // silently connecting to the wrong port.
+      connectionString: process.env.DATABASE_URL || (() => {
+        throw new Error(
+          "DATABASE_URL is not set. Run ./scripts/init-project.sh or check your .env.local file."
+        );
+      })(),
     },
   }),
 });
