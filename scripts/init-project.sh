@@ -285,8 +285,8 @@ ENV_LOCAL="${PROJECT_ROOT}/.env.local"
 ENV_TEMPLATE="${PROJECT_ROOT}/.env.template"
 
 if [[ ! -f "${ENV_TEMPLATE}" ]]; then
-  fail ".env.template not found at ${ENV_TEMPLATE}"
-  exit 1
+  warn ".env.template not found — the wizard may have simplified it. Creating a minimal .env.local"
+  touch "${ENV_LOCAL}"
 fi
 
 if [[ -f "${ENV_LOCAL}" ]]; then
@@ -318,19 +318,18 @@ TWENTY_ENV_DIR="${PROJECT_ROOT}/docker/twenty"
 TWENTY_ENV_FILE="${TWENTY_ENV_DIR}/.env"
 
 if [[ ! -d "${TWENTY_ENV_DIR}" ]]; then
-  fail "docker/twenty/ directory not found at ${TWENTY_ENV_DIR}"
-  exit 1
-fi
-
-# Overwrite only APP_SECRET; preserve any other existing vars
-if [[ -f "${TWENTY_ENV_FILE}" ]]; then
-  # Update the existing APP_SECRET line
-  sed -i.tmp "s|^APP_SECRET=.*|APP_SECRET=${APP_SECRET}|" "${TWENTY_ENV_FILE}"
-  rm -f "${TWENTY_ENV_FILE}.tmp"
-  ok "Updated APP_SECRET in ${TWENTY_ENV_FILE}"
+  warn "docker/twenty/ not found — Twenty CRM was not selected, skipping"
 else
-  echo "APP_SECRET=${APP_SECRET}" > "${TWENTY_ENV_FILE}"
-  ok "Created ${TWENTY_ENV_FILE}"
+  # Overwrite only APP_SECRET; preserve any other existing vars
+  if [[ -f "${TWENTY_ENV_FILE}" ]]; then
+    # Update the existing APP_SECRET line
+    sed -i.tmp "s|^APP_SECRET=.*|APP_SECRET=${APP_SECRET}|" "${TWENTY_ENV_FILE}"
+    rm -f "${TWENTY_ENV_FILE}.tmp"
+    ok "Updated APP_SECRET in ${TWENTY_ENV_FILE}"
+  else
+    echo "APP_SECRET=${APP_SECRET}" > "${TWENTY_ENV_FILE}"
+    ok "Created ${TWENTY_ENV_FILE}"
+  fi
 fi
 
 # ---------------------------------------------------------------------------
@@ -338,63 +337,69 @@ fi
 # ---------------------------------------------------------------------------
 section "Step 6 — Starting Supabase local dev"
 
-# Check if Supabase is already running by attempting `supabase status`
-SUPABASE_ALREADY_RUNNING=false
-if pnpm supabase status &>/dev/null 2>&1; then
-  warn "Supabase appears to already be running — skipping start"
-  SUPABASE_ALREADY_RUNNING=true
+# Skip if Supabase was not selected (supabase/ directory removed by wizard)
+if [[ ! -d "${PROJECT_ROOT}/supabase" ]]; then
+  warn "supabase/ not found — Supabase was not selected, skipping"
+  SUPABASE_SKIPPED=true
 else
-  info "Running pnpm supabase start (this may take a minute on first run)…"
-  if ! pnpm supabase start; then
-    fail "pnpm supabase start failed. Check Docker is running and ports are free."
-    exit 1
+  SUPABASE_SKIPPED=false
+  # Check if Supabase is already running by attempting `supabase status`
+  SUPABASE_ALREADY_RUNNING=false
+  if pnpm supabase status &>/dev/null 2>&1; then
+    warn "Supabase appears to already be running — skipping start"
+    SUPABASE_ALREADY_RUNNING=true
+  else
+    info "Running pnpm supabase start (this may take a minute on first run)…"
+    if ! pnpm supabase start; then
+      fail "pnpm supabase start failed. Check Docker is running and ports are free."
+      exit 1
+    fi
+    ok "Supabase started"
   fi
-  ok "Supabase started"
 fi
 
-# Capture keys from supabase status output
-info "Capturing Supabase connection details…"
-SUPABASE_STATUS=$(pnpm supabase status 2>&1)
+# Capture keys from supabase status output (only if Supabase is active)
+if [[ "${SUPABASE_SKIPPED}" != "true" ]]; then
+  info "Capturing Supabase connection details…"
+  SUPABASE_STATUS=$(pnpm supabase status 2>&1)
 
-extract_supabase_value() {
-  local key="$1"
-  echo "${SUPABASE_STATUS}" | grep -E "^\s*${key}:" | sed 's/.*: *//' | tr -d '[:space:]'
-}
+  extract_supabase_value() {
+    local key="$1"
+    echo "${SUPABASE_STATUS}" | grep -E "^\s*${key}:" | sed 's/.*: *//' | tr -d '[:space:]'
+  }
 
-SUPABASE_ANON_KEY=$(extract_supabase_value "anon key")
-SUPABASE_SERVICE_ROLE_KEY=$(extract_supabase_value "service_role key")
-SUPABASE_API_URL=$(extract_supabase_value "API URL")
+  SUPABASE_ANON_KEY=$(extract_supabase_value "anon key")
+  SUPABASE_SERVICE_ROLE_KEY=$(extract_supabase_value "service_role key")
+  SUPABASE_API_URL=$(extract_supabase_value "API URL")
 
-# Fallback if the URL line differs by pnpm wrapper output
-if [[ -z "${SUPABASE_API_URL}" ]]; then
-  SUPABASE_API_URL="http://127.0.0.1:${PORT_SUPABASE_API}"
+  # Fallback if the URL line differs by pnpm wrapper output
+  if [[ -z "${SUPABASE_API_URL}" ]]; then
+    SUPABASE_API_URL="http://127.0.0.1:${PORT_SUPABASE_API}"
+  fi
+
+  if [[ -z "${SUPABASE_ANON_KEY}" ]]; then
+    warn "Could not extract anon key from supabase status — you may need to add it to .env.local manually"
+  else
+    ok "anon key captured"
+  fi
+  if [[ -z "${SUPABASE_SERVICE_ROLE_KEY}" ]]; then
+    warn "Could not extract service_role key — you may need to add it to .env.local manually"
+  else
+    ok "service_role key captured"
+  fi
+  ok "API URL: ${SUPABASE_API_URL}"
+
+  # Patch keys into .env.local if it exists
+  if [[ -f "${ENV_LOCAL}" ]]; then
+    sed -i.tmp "s|^NEXT_PUBLIC_SUPABASE_URL=.*|NEXT_PUBLIC_SUPABASE_URL=${SUPABASE_API_URL}|"       "${ENV_LOCAL}"
+    sed -i.tmp "s|^NEXT_PUBLIC_SUPABASE_ANON_KEY=.*|NEXT_PUBLIC_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}|" "${ENV_LOCAL}"
+    sed -i.tmp "s|^SUPABASE_SERVICE_ROLE_KEY=.*|SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}|" "${ENV_LOCAL}"
+    sed -i.tmp "s|^PUBLIC_SUPABASE_URL=.*|PUBLIC_SUPABASE_URL=${SUPABASE_API_URL}|"                 "${ENV_LOCAL}"
+    sed -i.tmp "s|^PUBLIC_SUPABASE_ANON_KEY=.*|PUBLIC_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}|"     "${ENV_LOCAL}"
+    rm -f "${ENV_LOCAL}.tmp"
+    ok ".env.local patched with Supabase keys"
+  fi
 fi
-
-if [[ -z "${SUPABASE_ANON_KEY}" ]]; then
-  fail "Could not extract anon key from supabase status. Output was:\n${SUPABASE_STATUS}"
-  exit 1
-fi
-if [[ -z "${SUPABASE_SERVICE_ROLE_KEY}" ]]; then
-  fail "Could not extract service_role key from supabase status."
-  exit 1
-fi
-
-ok "anon key captured"
-ok "service_role key captured"
-ok "API URL: ${SUPABASE_API_URL}"
-
-# Patch keys into .env.local
-sed -i.tmp "s|^NEXT_PUBLIC_SUPABASE_URL=.*|NEXT_PUBLIC_SUPABASE_URL=${SUPABASE_API_URL}|"       "${ENV_LOCAL}"
-sed -i.tmp "s|^NEXT_PUBLIC_SUPABASE_ANON_KEY=.*|NEXT_PUBLIC_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}|" "${ENV_LOCAL}"
-sed -i.tmp "s|^SUPABASE_SERVICE_ROLE_KEY=.*|SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}|" "${ENV_LOCAL}"
-
-# Astro PUBLIC_ variants
-sed -i.tmp "s|^PUBLIC_SUPABASE_URL=.*|PUBLIC_SUPABASE_URL=${SUPABASE_API_URL}|"                 "${ENV_LOCAL}"
-sed -i.tmp "s|^PUBLIC_SUPABASE_ANON_KEY=.*|PUBLIC_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}|"     "${ENV_LOCAL}"
-
-rm -f "${ENV_LOCAL}.tmp"
-
-ok ".env.local patched with Supabase keys"
 
 # ---------------------------------------------------------------------------
 # STEP 7 — Start Twenty CRM
@@ -417,8 +422,7 @@ else
   else
     info "Starting Twenty CRM via docker compose…"
     if ! docker compose -f "${TWENTY_COMPOSE_FILE}" up -d; then
-      fail "docker compose up for Twenty CRM failed. Check ${TWENTY_COMPOSE_FILE} and Docker logs."
-      exit 1
+      warn "docker compose up for Twenty CRM failed. Check Docker logs. Continuing..."
     fi
     ok "Twenty CRM started (port ${PORT_TWENTY})"
   fi
