@@ -1043,14 +1043,16 @@ function printSummary(selections, projectName) {
   console.log(`    ${bold('Step 2.')} Start services (generates passwords, starts database and Docker):`);
   console.log(`    ${cyan(`./scripts/init-project.sh "${projectName}"`)}`);
   console.log('');
-  if (kept.includes('Astro') && kept.includes('Next.js')) {
+  const hasAstro = selections.frameworks.includes('astro');
+  const hasNext = selections.frameworks.includes('next');
+  if (hasAstro && hasNext) {
     console.log(`    ${bold('Step 3.')} Start your dev servers (open two terminal windows, one for each):`);
     console.log(`    ${cyan('pnpm dev:astro')}    ${dim('# starts your Astro website')}`);
     console.log(`    ${cyan('pnpm dev:next')}     ${dim('# starts your Next.js app + CMS admin')}`);
-  } else if (kept.includes('Astro')) {
+  } else if (hasAstro) {
     console.log(`    ${bold('Step 3.')} Start your development server:`);
     console.log(`    ${cyan('pnpm dev:astro')}`);
-  } else if (kept.includes('Next.js')) {
+  } else if (hasNext) {
     console.log(`    ${bold('Step 3.')} Start your development server:`);
     console.log(`    ${cyan('pnpm dev:next')}`);
   }
