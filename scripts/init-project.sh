@@ -98,7 +98,7 @@ info "Supabase — API: ${PORT_SUPABASE_API}  DB: ${PORT_SUPABASE_DB}  Studio: $
 # ---------------------------------------------------------------------------
 # STEP 1 — Prerequisites
 # ---------------------------------------------------------------------------
-section "Step 1 — Checking prerequisites"
+section "Checking prerequisites"
 
 # Node.js >= 20
 if ! command -v node &>/dev/null; then
@@ -141,7 +141,7 @@ ok "openssl available"
 # ---------------------------------------------------------------------------
 # STEP 2 — Install dependencies
 # ---------------------------------------------------------------------------
-section "Step 2 — Installing dependencies"
+section "Installing dependencies"
 info "Running pnpm install…"
 pnpm install
 ok "Dependencies installed"
@@ -149,7 +149,7 @@ ok "Dependencies installed"
 # ---------------------------------------------------------------------------
 # STEP 3 — Generate secrets
 # ---------------------------------------------------------------------------
-section "Step 3 — Generating secrets"
+section "Generating secrets"
 
 PAYLOAD_SECRET=$(openssl rand -hex 32)
 APP_SECRET=$(openssl rand -hex 32)
@@ -160,7 +160,7 @@ ok "APP_SECRET generated (${#APP_SECRET} hex chars)"
 # ---------------------------------------------------------------------------
 # STEP 3b — Apply unique port configuration to all config files
 # ---------------------------------------------------------------------------
-section "Step 3b — Configuring unique ports"
+section "Configuring unique ports"
 
 # Astro port — astro.config.mjs server.port
 ASTRO_CONFIG="${PROJECT_ROOT}/templates/astro-site/astro.config.mjs"
@@ -298,7 +298,7 @@ ok "Port assignments saved to .ports"
 # ---------------------------------------------------------------------------
 # STEP 4 — Create .env.local from .env.template
 # ---------------------------------------------------------------------------
-section "Step 4 — Creating .env.local"
+section "Creating .env.local"
 
 ENV_LOCAL="${PROJECT_ROOT}/.env.local"
 ENV_TEMPLATE="${PROJECT_ROOT}/.env.template"
@@ -331,7 +331,7 @@ ok ".env.local created at ${ENV_LOCAL}"
 # ---------------------------------------------------------------------------
 # STEP 5 — Write docker/twenty/.env
 # ---------------------------------------------------------------------------
-section "Step 5 — Writing docker/twenty/.env"
+section "Writing docker/twenty/.env"
 
 TWENTY_ENV_DIR="${PROJECT_ROOT}/docker/twenty"
 TWENTY_ENV_FILE="${TWENTY_ENV_DIR}/.env"
@@ -354,7 +354,7 @@ fi
 # ---------------------------------------------------------------------------
 # STEP 6 — Start Supabase local dev
 # ---------------------------------------------------------------------------
-section "Step 6 — Starting Supabase local dev"
+section "Starting Supabase local dev"
 
 # Skip if Supabase was not selected (supabase/ directory removed by wizard)
 if [[ ! -d "${PROJECT_ROOT}/supabase" ]]; then
@@ -423,7 +423,7 @@ fi
 # ---------------------------------------------------------------------------
 # STEP 7 — Start Twenty CRM
 # ---------------------------------------------------------------------------
-section "Step 7 — Starting Twenty CRM"
+section "Starting Twenty CRM"
 
 TWENTY_COMPOSE_FILE="${TWENTY_ENV_DIR}/docker-compose.yml"
 
@@ -450,7 +450,7 @@ fi
 # ---------------------------------------------------------------------------
 # STEP 8 — Boot Next.js once to trigger Payload table creation
 # ---------------------------------------------------------------------------
-section "Step 8 — Booting Next.js to trigger Payload CMS table creation"
+section "Booting Next.js to trigger Payload CMS table creation"
 
 # Skip if Payload config doesn't exist (Payload or Next.js was not selected)
 NEXTJS_APP_DIR="${PROJECT_ROOT}/templates/next-app"
@@ -512,7 +512,7 @@ fi
 # ---------------------------------------------------------------------------
 # STEP 9 — Apply RLS on Payload CMS tables
 # ---------------------------------------------------------------------------
-section "Step 9 — Applying Row-Level Security on Payload CMS tables"
+section "Applying Row-Level Security on Payload CMS tables"
 
 # Skip if Supabase was not selected
 if [[ "${SUPABASE_SKIPPED}" == "true" ]]; then
@@ -561,7 +561,7 @@ fi  # end Supabase RLS guard
 # ---------------------------------------------------------------------------
 # STEP 10 — Run validation script
 # ---------------------------------------------------------------------------
-section "Step 10 — Running template validation"
+section "Running template validation"
 
 VALIDATE_SCRIPT="${SCRIPT_DIR}/validate-template.sh"
 
