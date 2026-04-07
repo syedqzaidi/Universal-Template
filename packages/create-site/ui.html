@@ -194,27 +194,32 @@
   var serverStates = {};
 
   var presets = [
-    { id: 'marketing', name: 'Marketing Site', desc: 'Astro + Supabase + Resend' },
-    { id: 'saas', name: 'SaaS App', desc: 'Next.js + Supabase + Stripe + Resend' },
-    { id: 'blog', name: 'Blog / Content', desc: 'Astro + Supabase' },
-    { id: 'fullstack', name: 'Full Stack', desc: 'Astro + Next.js + all services' },
+    { id: 'full', name: 'Full Stack', desc: 'Everything included — all 14 tools' },
+    { id: 'marketing', name: 'Marketing Site', desc: 'Astro + Supabase + Sentry + PostHog' },
+    { id: 'dashboard', name: 'Dashboard / App', desc: 'Next.js + Payload CMS + Supabase + Sentry' },
+    { id: 'both-frameworks', name: 'Both Frameworks', desc: 'Astro + Next.js + Supabase + Sentry' },
+    { id: 'minimal', name: 'Minimal (Astro)', desc: 'Astro only — Tailwind + shadcn, no backend' },
+    { id: 'nextjs-minimal', name: 'Minimal (Next.js)', desc: 'Next.js only — Tailwind + shadcn, no backend' },
   ];
 
   var services = [
-    { id: 'astro', name: 'Astro' },
-    { id: 'next', name: 'Next.js' },
-    { id: 'supabase', name: 'Supabase' },
-    { id: 'stripe', name: 'Stripe' },
-    { id: 'resend', name: 'Resend' },
-    { id: 'analytics', name: 'Analytics' },
-    { id: 'cms', name: 'CMS' },
+    { id: 'astro', name: 'Astro', desc: 'SEO and marketing websites', group: 'Frameworks' },
+    { id: 'nextjs', name: 'Next.js', desc: 'Dashboards, apps, admin panels', group: 'Frameworks' },
+    { id: 'supabase', name: 'Supabase', desc: 'Database + Auth + Storage', group: 'Backend' },
+    { id: 'payload', name: 'Payload CMS', desc: 'Headless CMS (requires Next.js + Supabase)', group: 'Backend' },
+    { id: 'twenty', name: 'Twenty CRM', desc: 'Customer relationship manager (Docker)', group: 'Backend' },
+    { id: 'sentry', name: 'Sentry', desc: 'Error tracking', group: 'Integrations' },
+    { id: 'posthog', name: 'PostHog', desc: 'Product analytics', group: 'Integrations' },
+    { id: 'resend', name: 'Resend', desc: 'Transactional email', group: 'Integrations' },
   ];
 
   var defaultServiceURLs = [
-    { name: 'Astro', port: 4321, server: 'astro' },
-    { name: 'Next.js', port: 3000, server: 'next' },
-    { name: 'Supabase Studio', port: 54323, server: null },
-    { name: 'Supabase API', port: 54321, server: null },
+    { name: 'Astro Website', service: 'astro', server: 'astro' },
+    { name: 'Next.js App', service: 'nextjs', server: 'next' },
+    { name: 'Payload CMS Admin', service: 'payload', server: 'next', suffix: '/admin' },
+    { name: 'Supabase Studio', service: 'supabase', server: null },
+    { name: 'Supabase Mailpit', service: 'supabase', server: null },
+    { name: 'Twenty CRM', service: 'twenty', server: null },
   ];
 
   // -- Helpers --
@@ -356,20 +361,31 @@
     validateForm();
   };
 
-  // -- Presets --
+  // -- Presets (attach click listener ONCE) --
+  $('presetGrid').addEventListener('click', function(e) {
+    var card = e.target.closest('[data-preset]');
+    if (card) togglePreset(card.getAttribute('data-preset'));
+  });
+
   function renderPresets() {
     var el = $('presetGrid');
-    var html = '';
+    el.textContent = '';
     for (var i = 0; i < presets.length; i++) {
       var p = presets[i];
-      html += '<div class="preset-card" data-preset="' + p.id + '" id="preset-' + p.id + '">'
-        + '<div class="name">' + esc(p.name) + '</div><div class="desc">' + esc(p.desc) + '</div></div>';
+      var card = document.createElement('div');
+      card.className = 'preset-card';
+      card.setAttribute('data-preset', p.id);
+      card.id = 'preset-' + p.id;
+      var name = document.createElement('div');
+      name.className = 'name';
+      name.textContent = p.name;
+      var desc = document.createElement('div');
+      desc.className = 'desc';
+      desc.textContent = p.desc;
+      card.appendChild(name);
+      card.appendChild(desc);
+      el.appendChild(card);
     }
-    el.innerHTML = html;
-    el.addEventListener('click', function(e) {
-      var card = e.target.closest('[data-preset]');
-      if (card) togglePreset(card.getAttribute('data-preset'));
-    });
   }
 
   function togglePreset(id) {
@@ -381,32 +397,68 @@
     validateForm();
   }
 
-  // -- Services --
+  // -- Services (attach click listener ONCE) --
+  $('servicesGrid').addEventListener('click', function(e) {
+    var item = e.target.closest('[data-service]');
+    if (item) toggleService(item.getAttribute('data-service'));
+  });
+
   function renderServices() {
     var el = $('servicesGrid');
-    var html = '';
+    el.textContent = '';
+    var lastGroup = '';
     for (var i = 0; i < services.length; i++) {
       var s = services[i];
-      var active = selectedServices.has(s.id) ? ' active' : '';
-      html += '<div class="service-check' + active + '" data-service="' + s.id + '">'
-        + '<input type="checkbox"' + (selectedServices.has(s.id) ? ' checked' : '') + '>'
-        + '<span class="label">' + esc(s.name) + '</span></div>';
+      // Add group header
+      if (s.group && s.group !== lastGroup) {
+        lastGroup = s.group;
+        var groupLabel = document.createElement('div');
+        groupLabel.style.cssText = 'font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em;color:#555;padding:10px 0 4px 0;grid-column:1/-1;';
+        if (i > 0) groupLabel.style.marginTop = '8px';
+        groupLabel.textContent = s.group;
+        el.appendChild(groupLabel);
+      }
+      var checked = selectedServices.has(s.id);
+      var div = document.createElement('div');
+      div.className = 'service-check' + (checked ? ' active' : '');
+      div.setAttribute('data-service', s.id);
+      var cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = checked;
+      var label = document.createElement('span');
+      label.className = 'label';
+      label.textContent = s.name;
+      div.appendChild(cb);
+      div.appendChild(label);
+      if (s.desc) {
+        var desc = document.createElement('div');
+        desc.style.cssText = 'font-size:0.72rem;color:#666;margin-top:2px;grid-column:1/-1;padding-left:22px;';
+        desc.textContent = s.desc;
+        div.appendChild(desc);
+      }
+      el.appendChild(div);
     }
-    el.innerHTML = html;
-    el.addEventListener('click', function(e) {
-      var item = e.target.closest('[data-service]');
-      if (item) toggleService(item.getAttribute('data-service'));
-    });
   }
 
   function toggleService(id) {
-    if (selectedServices.has(id)) selectedServices.delete(id);
-    else {
+    if (selectedServices.has(id)) {
+      selectedServices.delete(id);
+      // If unchecking nextjs or supabase, also uncheck payload
+      if ((id === 'nextjs' || id === 'supabase') && selectedServices.has('payload')) {
+        selectedServices.delete('payload');
+      }
+    } else {
       selectedServices.add(id);
-      selectedPreset = null;
-      var cards = document.querySelectorAll('.preset-card');
-      for (var i = 0; i < cards.length; i++) cards[i].classList.remove('active');
+      // Payload requires nextjs + supabase
+      if (id === 'payload') {
+        selectedServices.add('nextjs');
+        selectedServices.add('supabase');
+      }
     }
+    // Clear preset selection when manually toggling
+    selectedPreset = null;
+    var cards = document.querySelectorAll('.preset-card');
+    for (var i = 0; i < cards.length; i++) cards[i].classList.remove('active');
     renderServices();
     validateForm();
   }
