@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agency Web Stack — Create Project</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0a0a0a;color:#e5e5e5;line-height:1.6}
+    a{color:#60a5fa;text-decoration:none}a:hover{text-decoration:underline}
+    .container{max-width:720px;margin:0 auto;padding:2rem 1.5rem}
+    header{text-align:center;padding:3rem 0 2rem}
+    header h1{font-size:2rem;font-weight:700;color:#fff;letter-spacing:-.02em}
+    header p{color:#888;margin-top:.5rem;font-size:1.05rem}
+    .step{margin-bottom:2.5rem}
+    .step-label{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:#555;margin-bottom:.5rem}
+    .step h2{font-size:1.15rem;font-weight:600;color:#ccc;margin-bottom:1rem}
+    input[type="text"]{width:100%;padding:.7rem 1rem;background:#161616;border:1px solid #2a2a2a;border-radius:8px;color:#e5e5e5;font-size:1rem;outline:none;transition:border-color .2s}
+    input[type="text"]:focus{border-color:#3b82f6}
+    .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:.75rem}
+    .card{padding:.85rem 1rem;background:#161616;border:1px solid #2a2a2a;border-radius:8px;cursor:pointer;transition:border-color .2s,background .2s;text-align:center}
+    .card:hover{border-color:#444}.card.active{border-color:#3b82f6;background:#1a1a2e}
+    .card-title{font-weight:600;color:#ddd;font-size:.95rem}.card-desc{font-size:.78rem;color:#777;margin-top:.25rem}
+    .presets{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:.75rem;margin-bottom:1.25rem}
+    .preset{padding:.9rem .75rem;background:#161616;border:1px solid #2a2a2a;border-radius:8px;cursor:pointer;transition:border-color .2s,background .2s}
+    .preset:hover{border-color:#444}.preset.active{border-color:#3b82f6;background:#1a1a2e}
+    .preset-name{font-weight:600;font-size:.9rem;color:#ddd}.preset-desc{font-size:.72rem;color:#777;margin-top:.2rem}
+    .checkboxes{display:none;background:#111;border:1px solid #1e1e1e;border-radius:8px;padding:1rem 1.25rem}
+    .checkboxes.visible{display:block}
+    .cb-group-title{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:#555;margin:1rem 0 .5rem}.cb-group-title:first-child{margin-top:0}
+    .cb-row{display:flex;align-items:flex-start;gap:.5rem;padding:.35rem 0}
+    .cb-row input[type="checkbox"]{margin-top:.35rem;accent-color:#3b82f6;cursor:pointer}
+    .cb-row label{cursor:pointer;font-size:.9rem;color:#ccc}
+    .cb-row label span{color:#666;font-size:.8rem}
+    .dep-note{font-size:.78rem;color:#f59e0b;margin-top:.5rem;display:none}
+    .dep-note.visible{display:block}
+    .validation{font-size:.82rem;color:#ef4444;margin-top:.5rem;display:none}
+    .validation.visible{display:block}
+    .code-block{background:#111;border:1px solid #1e1e1e;border-radius:8px;padding:1rem;overflow-x:auto;font-family:'SF Mono',SFMono-Regular,Consolas,'Liberation Mono',Menlo,monospace;font-size:.85rem;color:#a5f3fc;word-break:break-all;white-space:pre-wrap;line-height:1.5}
+    .copy-btn{display:block;width:100%;margin-top:.75rem;padding:.8rem;background:#3b82f6;color:#fff;border:none;border-radius:8px;font-size:1rem;font-weight:600;cursor:pointer;transition:background .2s}
+    .copy-btn:hover{background:#2563eb}
+    .steps-list{list-style:none;counter-reset:steps}
+    .steps-list li{counter-increment:steps;padding:.6rem 0;border-bottom:1px solid #1a1a1a;font-size:.92rem;color:#bbb}
+    .steps-list li::before{content:counter(steps) ".";font-weight:700;color:#3b82f6;margin-right:.6rem}
+    .steps-list li:last-child{border-bottom:none}
+    .steps-list kbd{background:#222;padding:.15rem .45rem;border-radius:4px;font-size:.82rem;border:1px solid #333;font-family:inherit}
+    details{background:#111;border:1px solid #1e1e1e;border-radius:8px;margin-top:2rem}
+    details summary{padding:.85rem 1rem;cursor:pointer;color:#999;font-size:.9rem;font-weight:600}
+    details summary:hover{color:#ccc}
+    details[open] summary{border-bottom:1px solid #1e1e1e}
+    details .inner{padding:1rem 1.25rem}
+    details ul{list-style:disc;padding-left:1.25rem}
+    details li{padding:.25rem 0;font-size:.88rem;color:#aaa}
+    footer{text-align:center;padding:2rem 0 3rem;border-top:1px solid #1a1a1a;margin-top:2rem;font-size:.85rem;color:#555}
+    footer a{margin:0 .75rem}
+    .custom-loc{margin-top:.75rem;display:none}.custom-loc.visible{display:block}
+    @media(max-width:500px){.cards,.presets{grid-template-columns:1fr 1fr}header h1{font-size:1.5rem}.container{padding:1.5rem 1rem}}
+  </style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>Agency Web Stack</h1>
+    <p>Create a new project in seconds</p>
+  </header>
+
+  <div class="step">
+    <div class="step-label">Step 1</div>
+    <h2>Project Name</h2>
+    <input type="text" id="projectName" placeholder="my-project" autocomplete="off" aria-label="Project name">
+    <div class="validation" id="nameError">Only lowercase letters, numbers, and hyphens allowed</div>
+  </div>
+
+  <div class="step">
+    <div class="step-label">Step 2</div>
+    <h2>Install Location</h2>
+    <div class="cards" id="locationCards">
+      <div class="card active" data-loc="~/Desktop"><div class="card-title">Desktop</div><div class="card-desc">~/Desktop</div></div>
+      <div class="card" data-loc="~/Documents"><div class="card-title">Documents</div><div class="card-desc">~/Documents</div></div>
+      <div class="card" data-loc="custom"><div class="card-title">Custom</div><div class="card-desc">Specify a path</div></div>
+    </div>
+    <div class="custom-loc" id="customLoc">
+      <input type="text" id="customPath" placeholder="~/Projects/clients" aria-label="Custom install path">
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-label">Step 3</div>
+    <h2>Choose Your Stack</h2>
+    <div class="presets" id="presets">
+      <div class="preset active" data-preset="full"><div class="preset-name">Full Stack</div><div class="preset-desc">Everything included</div></div>
+      <div class="preset" data-preset="marketing"><div class="preset-name">Marketing Site</div><div class="preset-desc">Astro + Supabase + Sentry + PostHog</div></div>
+      <div class="preset" data-preset="dashboard"><div class="preset-name">Dashboard / App</div><div class="preset-desc">Next.js + Payload + Supabase + Sentry</div></div>
+      <div class="preset" data-preset="minimal"><div class="preset-name">Minimal</div><div class="preset-desc">Astro only</div></div>
+      <div class="preset" data-preset="custom"><div class="preset-name">Custom</div><div class="preset-desc">Pick individual tools</div></div>
+    </div>
+    <div class="checkboxes" id="checkboxes">
+      <div class="cb-group-title">Frameworks (at least 1 required)</div>
+      <div class="cb-row"><input type="checkbox" id="cb-astro"><label for="cb-astro">Astro <span>-- SEO and marketing websites</span></label></div>
+      <div class="cb-row"><input type="checkbox" id="cb-nextjs"><label for="cb-nextjs">Next.js <span>-- Dashboards, apps, admin panels</span></label></div>
+      <div class="cb-group-title">Backend</div>
+      <div class="cb-row"><input type="checkbox" id="cb-supabase"><label for="cb-supabase">Supabase <span>-- Database + Auth + Storage</span></label></div>
+      <div class="cb-row"><input type="checkbox" id="cb-payload"><label for="cb-payload">Payload CMS <span>-- Headless content management</span></label></div>
+      <div class="cb-row"><input type="checkbox" id="cb-twenty"><label for="cb-twenty">Twenty CRM <span>-- Customer relationship manager (Docker)</span></label></div>
+      <div class="cb-group-title">Integrations</div>
+      <div class="cb-row"><input type="checkbox" id="cb-sentry"><label for="cb-sentry">Sentry <span>-- Error tracking</span></label></div>
+      <div class="cb-row"><input type="checkbox" id="cb-posthog"><label for="cb-posthog">PostHog <span>-- Product analytics</span></label></div>
+      <div class="cb-row"><input type="checkbox" id="cb-resend"><label for="cb-resend">Resend <span>-- Transactional email</span></label></div>
+      <div class="dep-note" id="depNote">Payload CMS requires Next.js and Supabase -- they have been auto-selected.</div>
+    </div>
+    <div class="validation" id="frameworkError">At least one framework must be selected</div>
+  </div>
+
+  <div class="step">
+    <div class="step-label">Step 4</div>
+    <h2>Your Command</h2>
+    <div class="code-block" id="command"></div>
+    <button class="copy-btn" id="copyBtn" type="button">Copy to Clipboard</button>
+  </div>
+
+  <div class="step">
+    <div class="step-label">Step 5</div>
+    <h2>What Happens Next</h2>
+    <ol class="steps-list">
+      <li>Open Terminal (<kbd>Cmd</kbd> + <kbd>Space</kbd>, type "Terminal")</li>
+      <li>Paste the command (<kbd>Cmd</kbd> + <kbd>V</kbd>) and press <kbd>Enter</kbd></li>
+      <li>The wizard will guide you through setup (~5 minutes)</li>
+      <li>Your project URLs will be printed at the end</li>
+    </ol>
+  </div>
+
+  <details>
+    <summary>Prerequisites</summary>
+    <div class="inner">
+      <ul>
+        <li><a href="https://nodejs.org" target="_blank" rel="noopener">Node.js 20+</a></li>
+        <li><a href="https://www.docker.com/products/docker-desktop/" target="_blank" rel="noopener">Docker Desktop</a></li>
+        <li>pnpm (auto-installed by the script)</li>
+      </ul>
+    </div>
+  </details>
+
+  <footer>
+    <a href="https://github.com/syedqzaidi/agency-web-stack" target="_blank" rel="noopener">GitHub</a>
+    <a href="https://github.com/syedqzaidi/agency-web-stack#readme" target="_blank" rel="noopener">Documentation</a>
+  </footer>
+</div>
+
+<script>
+const PRESETS = {
+  full: ['astro','nextjs','supabase','payload','twenty','sentry','posthog','resend'],
+  marketing: ['astro','supabase','sentry','posthog'],
+  dashboard: ['nextjs','payload','supabase','sentry'],
+  minimal: ['astro']
+};
+
+const ALL_SERVICES = ['astro','nextjs','supabase','payload','twenty','sentry','posthog','resend'];
+let activePreset = 'full';
+let activeLocation = '~/Desktop';
+
+function $(id) { return document.getElementById(id); }
+function slugify(v) { return v.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''); }
+
+// Project name
+$('projectName').addEventListener('input', function() {
+  var s = slugify(this.value);
+  if (s !== this.value) this.value = s;
+  var valid = s === '' || /^[a-z0-9-]+$/.test(s);
+  $('nameError').classList.toggle('visible', !valid);
+  generateCommand();
+});
+
+// Location cards
+$('locationCards').addEventListener('click', function(e) {
+  var card = e.target.closest('.card');
+  if (!card) return;
+  this.querySelectorAll('.card').forEach(function(c) { c.classList.remove('active'); });
+  card.classList.add('active');
+  var loc = card.dataset.loc;
+  activeLocation = loc === 'custom' ? ($('customPath').value || '~/Desktop') : loc;
+  $('customLoc').classList.toggle('visible', loc === 'custom');
+  generateCommand();
+});
+
+$('customPath').addEventListener('input', function() {
+  activeLocation = this.value || '~/Desktop';
+  generateCommand();
+});
+
+// Preset cards
+$('presets').addEventListener('click', function(e) {
+  var p = e.target.closest('.preset');
+  if (!p) return;
+  this.querySelectorAll('.preset').forEach(function(c) { c.classList.remove('active'); });
+  p.classList.add('active');
+  activePreset = p.dataset.preset;
+  var isCustom = activePreset === 'custom';
+  $('checkboxes').classList.toggle('visible', isCustom);
+
+  if (!isCustom) {
+    applyPresetToCheckboxes(activePreset);
+  }
+  $('depNote').classList.remove('visible');
+  validateFrameworks();
+  generateCommand();
+});
+
+function applyPresetToCheckboxes(name) {
+  var services = PRESETS[name] || [];
+  ALL_SERVICES.forEach(function(s) {
+    $('cb-' + s).checked = services.indexOf(s) !== -1;
+  });
+}
+
+// Init with full preset
+applyPresetToCheckboxes('full');
+
+// Checkbox dependencies
+$('checkboxes').addEventListener('change', function(e) {
+  var id = e.target.id;
+  if (id === 'cb-payload' && e.target.checked) {
+    $('cb-nextjs').checked = true;
+    $('cb-supabase').checked = true;
+    $('depNote').classList.add('visible');
+  }
+  if (id === 'cb-nextjs' && !e.target.checked) {
+    $('cb-payload').checked = false;
+    $('depNote').classList.remove('visible');
+  }
+  if (id === 'cb-supabase' && !e.target.checked) {
+    $('cb-payload').checked = false;
+    $('depNote').classList.remove('visible');
+  }
+  validateFrameworks();
+  generateCommand();
+});
+
+function validateFrameworks() {
+  if (activePreset !== 'custom') { $('frameworkError').classList.remove('visible'); return; }
+  var ok = $('cb-astro').checked || $('cb-nextjs').checked;
+  $('frameworkError').classList.toggle('visible', !ok);
+}
+
+function getSelectedServices() {
+  if (activePreset !== 'custom') return PRESETS[activePreset];
+  return ALL_SERVICES.filter(function(s) { return $('cb-' + s).checked; });
+}
+
+function findMatchingPreset(services) {
+  var sorted = services.slice().sort().join(',');
+  for (var key in PRESETS) {
+    if (PRESETS[key].slice().sort().join(',') === sorted) return key;
+  }
+  return null;
+}
+
+function generateCommand() {
+  var name = $('projectName').value || 'my-project';
+  var loc = activeLocation;
+  var services = getSelectedServices();
+  var preset = findMatchingPreset(services);
+  var flags = preset ? '--preset=' + preset : services.map(function(s) { return '--' + s; }).join(' ');
+  var cmd = 'cd ' + loc + ' && curl -fsSL https://raw.githubusercontent.com/syedqzaidi/agency-web-stack/main/scripts/bootstrap.sh | bash -s -- ' + name + ' ' + flags;
+  $('command').textContent = cmd;
+}
+
+// Copy
+$('copyBtn').addEventListener('click', function() {
+  var text = $('command').textContent;
+  navigator.clipboard.writeText(text).then(function() {
+    var btn = $('copyBtn');
+    btn.textContent = 'Copied!';
+    setTimeout(function() { btn.textContent = 'Copy to Clipboard'; }, 2000);
+  });
+});
+
+generateCommand();
+</script>
+</body>
+</html>
