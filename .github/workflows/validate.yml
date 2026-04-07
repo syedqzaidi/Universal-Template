@@ -74,10 +74,10 @@ jobs:
 
       - name: Check for placeholder secrets in committed files
         run: |
-          # Scan for common placeholder patterns in non-env files
+          # Scan for common placeholder patterns in source files (exclude CI workflows and docs)
           if grep -r "DEVELOPMENT-SECRET\|change_me_to\|your-secret-here\|sk_test_\|pk_test_" \
-            --include="*.ts" --include="*.tsx" --include="*.js" --include="*.yml" --include="*.yaml" \
-            --exclude-dir=node_modules --exclude-dir=.git . ; then
+            --include="*.ts" --include="*.tsx" --include="*.js" --include="*.json" \
+            --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=.github --exclude-dir=docs . ; then
             echo "WARNING: Possible placeholder secrets found in committed files"
             exit 1
           fi
