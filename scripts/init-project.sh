@@ -380,16 +380,26 @@ fi
 # Capture keys from supabase status output (only if Supabase is active)
 if [[ "${SUPABASE_SKIPPED}" != "true" ]]; then
   info "Capturing Supabase connection details…"
-  SUPABASE_STATUS=$(pnpm supabase status 2>&1)
+  SUPABASE_STATUS=$(pnpm supabase status 2>&1 || true)
 
+  # Extract values from supabase status table output.
+  # Output uses Unicode box-drawing │ as column separator: │ Label │ Value │
+  # We use awk to split on │ and take the 3rd field (the value column).
   extract_supabase_value() {
     local key="$1"
-    echo "${SUPABASE_STATUS}" | grep -E "^\s*${key}:" | sed 's/.*: *//' | tr -d '[:space:]'
+    local exclude="${2:-}"
+    local val
+    if [[ -n "${exclude}" ]]; then
+      val=$(echo "${SUPABASE_STATUS}" | grep -i "${key}" | grep -iv "${exclude}" | awk -F'│' '{print $3}' | tr -d '[:space:]' | head -1 || true)
+    else
+      val=$(echo "${SUPABASE_STATUS}" | grep -i "${key}" | awk -F'│' '{print $3}' | tr -d '[:space:]' | head -1 || true)
+    fi
+    echo "${val}"
   }
 
-  SUPABASE_ANON_KEY=$(extract_supabase_value "anon key")
-  SUPABASE_SERVICE_ROLE_KEY=$(extract_supabase_value "service_role key")
-  SUPABASE_API_URL=$(extract_supabase_value "API URL")
+  SUPABASE_ANON_KEY=$(extract_supabase_value "Publishable" || true)
+  SUPABASE_SERVICE_ROLE_KEY=$(extract_supabase_value "Secret" "Secret Key" || true)
+  SUPABASE_API_URL=$(extract_supabase_value "Project URL" || true)
 
   # Fallback if the URL line differs by pnpm wrapper output
   if [[ -z "${SUPABASE_API_URL}" ]]; then
