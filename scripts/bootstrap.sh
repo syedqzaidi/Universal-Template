@@ -107,11 +107,13 @@ echo -e "  ${GREEN}✔${RESET} Dependencies installed"
 echo ""
 
 # Step 4: Run wizard (or apply preset)
+# IMPORTANT: When this script is run via `curl | bash`, stdin is the pipe (not the keyboard).
+# We must redirect stdin from /dev/tty so the interactive wizard can read keypresses.
 echo -e "${BOLD}Step 4 of 5: Configuring your project${RESET}"
 if [[ ${#PASSTHROUGH_ARGS[@]} -gt 0 ]]; then
-  node scripts/create-project.mjs --name="$PROJECT_NAME" "${PASSTHROUGH_ARGS[@]}"
+  node scripts/create-project.mjs --name="$PROJECT_NAME" "${PASSTHROUGH_ARGS[@]}" < /dev/tty
 else
-  node scripts/create-project.mjs --name="$PROJECT_NAME"
+  node scripts/create-project.mjs --name="$PROJECT_NAME" < /dev/tty
 fi
 echo ""
 
@@ -120,4 +122,4 @@ echo -e "${BOLD}Step 5 of 5: Starting services${RESET}"
 echo "  This starts your database, CRM, and other Docker services."
 echo "  First run may take a few minutes to download Docker images."
 echo ""
-bash scripts/init-project.sh "$PROJECT_NAME"
+bash scripts/init-project.sh "$PROJECT_NAME" < /dev/tty
