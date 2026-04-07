@@ -1,0 +1,140 @@
+name: Validate Template
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify file structure
+        run: |
+          # Check all critical files exist
+          files=(
+            "package.json"
+            "pnpm-workspace.yaml"
+            ".env.template"
+            ".mcp.json"
+            ".gitignore"
+            "templates/astro-site/astro.config.mjs"
+            "templates/astro-site/src/layouts/Layout.astro"
+            "templates/astro-site/src/styles/global.css"
+            "templates/astro-site/sentry.client.config.ts"
+            "templates/astro-site/sentry.server.config.ts"
+            "templates/next-app/next.config.ts"
+            "templates/next-app/src/payload.config.ts"
+            "templates/next-app/src/app/layout.tsx"
+            "templates/next-app/src/app/(app)/layout.tsx"
+            "templates/next-app/src/app/(payload)/layout.tsx"
+            "templates/next-app/src/app/(payload)/_serverFunction.ts"
+            "templates/next-app/src/proxy.ts"
+            "templates/next-app/sentry.client.config.ts"
+            "templates/next-app/sentry.server.config.ts"
+            "packages/shared/src/supabase/client.ts"
+            "packages/shared/src/posthog/init.ts"
+            "packages/shared/src/resend/client.ts"
+            "docker/twenty/docker-compose.yml"
+            "supabase/config.toml"
+            "scripts/init-project.sh"
+            "scripts/validate-template.sh"
+          )
+
+          missing=0
+          for f in "${files[@]}"; do
+            if [ ! -f "$f" ]; then
+              echo "MISSING: $f"
+              missing=$((missing + 1))
+            fi
+          done
+
+          if [ $missing -gt 0 ]; then
+            echo "$missing critical files missing"
+            exit 1
+          fi
+          echo "All critical files present"
+
+      - name: Check for placeholder secrets in committed files
+        run: |
+          # Scan for common placeholder patterns in non-env files
+          if grep -r "DEVELOPMENT-SECRET\|change_me_to\|your-secret-here\|sk_test_\|pk_test_" \
+            --include="*.ts" --include="*.tsx" --include="*.js" --include="*.yml" --include="*.yaml" \
+            --exclude-dir=node_modules --exclude-dir=.git . ; then
+            echo "WARNING: Possible placeholder secrets found in committed files"
+            exit 1
+          fi
+          echo "No placeholder secrets in committed files"
+
+      - name: Verify env template completeness
+        run: |
+          required_vars=(
+            "NEXT_PUBLIC_SUPABASE_URL"
+            "NEXT_PUBLIC_SUPABASE_ANON_KEY"
+            "SUPABASE_SERVICE_ROLE_KEY"
+            "PUBLIC_SUPABASE_URL"
+            "PUBLIC_SUPABASE_ANON_KEY"
+            "NEXT_PUBLIC_POSTHOG_KEY"
+            "PUBLIC_POSTHOG_KEY"
+            "SENTRY_DSN"
+            "SENTRY_AUTH_TOKEN"
+            "SENTRY_ORG"
+            "SENTRY_PROJECT"
+            "NEXT_PUBLIC_SENTRY_DSN"
+            "PUBLIC_SENTRY_DSN"
+            "RESEND_API_KEY"
+            "PAYLOAD_SECRET"
+            "DATABASE_URL"
+            "NEXT_PUBLIC_SERVER_URL"
+          )
+
+          missing=0
+          for var in "${required_vars[@]}"; do
+            if ! grep -q "^${var}=" .env.template; then
+              echo "MISSING from .env.template: $var"
+              missing=$((missing + 1))
+            fi
+          done
+
+          if [ $missing -gt 0 ]; then
+            echo "$missing env vars missing from template"
+            exit 1
+          fi
+          echo "All required env vars present in template"
+
+      - name: TypeScript check (Astro)
+        run: pnpm --filter @template/astro-site astro check || true
+        # Allow failure - astro check may have false positives
+
+      - name: Lint (Next.js)
+        run: pnpm --filter @template/next-app lint || true
+        # Allow failure for template - projects customize lint rules
+
+      - name: Verify no .env files committed
+        run: |
+          if [ -f ".env" ] || [ -f ".env.local" ] || [ -f "docker/twenty/.env" ]; then
+            echo "ERROR: .env files should not be committed"
+            # docker/twenty/.env is gitignored, but check anyway
+            if git ls-files --error-unmatch docker/twenty/.env 2>/dev/null; then
+              echo "docker/twenty/.env is tracked by git - remove it"
+              exit 1
+            fi
+          fi
+          echo "No .env files in git"

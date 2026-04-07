@@ -1,0 +1,44 @@
+{
+  "mcpServers": {
+    "astro-docs": {
+      "url": "https://mcp.docs.astro.build/"
+    },
+    "next-devtools": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["@vercel/next-devtools-mcp"]
+    },
+    "shadcn": {
+      "url": "https://ui.shadcn.com/mcp"
+    },
+    "payload": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["@payloadcms/plugin-mcp"]
+    },
+    "supabase-remote": {
+      "url": "https://mcp.supabase.com/mcp"
+    },
+    "vercel": {
+      "url": "https://mcp.vercel.com"
+    },
+    "posthog": {
+      "url": "https://mcp.posthog.com/sse"
+    },
+    "sentry": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["@sentry/mcp-server"]
+    },
+    "resend": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["resend-mcp"]
+    },
+    "twenty-crm": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["twenty-crm-mcp-server"]
+    }
+  }
+}

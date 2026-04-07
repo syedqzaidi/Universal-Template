@@ -1,0 +1,19 @@
+{
+  "name": "website-template",
+  "private": true,
+  "scripts": {
+    "dev:astro": "pnpm --filter @template/astro-site dev",
+    "dev:next": "pnpm --filter @template/next-app dev",
+    "build:astro": "pnpm --filter @template/astro-site build",
+    "build:next": "pnpm --filter @template/next-app build",
+    "dev:supabase": "pnpm supabase start",
+    "stop:supabase": "pnpm supabase stop"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "prompts": "^2.4.2",
+    "supabase": "^2.85.0"
+  }
+}

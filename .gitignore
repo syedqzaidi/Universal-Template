@@ -1,0 +1,48 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+.next/
+.astro/
+.vercel/
+.output/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Supabase
+supabase/.temp/
+
+# Docker
+docker/twenty/data/
+docker/twenty/.env
+
+# Debug
+npm-debug.log*
+pnpm-debug.log*
+
+# Sentry
+.sentryclirc
+
+# Turbo
+.turbo/
+
+# Local tooling / session data
+.playwright-mcp/
+.remember/
+
+# Third-party cloned tools (install separately)
+tools/ai-website-cloner/

@@ -1,0 +1,21 @@
+{
+  "name": "@template/shared",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./supabase": "./src/supabase/client.ts",
+    "./posthog": "./src/posthog/init.ts",
+    "./resend": "./src/resend/client.ts",
+    "./types": "./src/types/index.ts"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.10.0",
+    "@supabase/supabase-js": "^2.101.1",
+    "posthog-js": "^1.364.7",
+    "resend": "^6.10.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0"
+  }
+}

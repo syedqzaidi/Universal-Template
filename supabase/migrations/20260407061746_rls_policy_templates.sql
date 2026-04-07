@@ -1,0 +1,42 @@
+-- =============================================================
+-- RLS Policy Templates
+-- =============================================================
+-- Payload CMS tables have RLS enabled (via auto_enable_rls trigger)
+-- but NO policies defined — meaning all PostgREST/JS client access
+-- is denied by default. This is intentional.
+--
+-- Payload manages its own auth and connects as postgres superuser,
+-- bypassing RLS entirely. Only uncomment policies below if you
+-- need DIRECT Supabase client access to these tables from your
+-- frontend (bypassing Payload's API).
+--
+-- For most use cases, access Payload data through the REST API
+-- at /api/<collection> instead of direct DB queries.
+-- =============================================================
+
+-- Example: Allow authenticated users to read published pages
+-- CREATE POLICY "authenticated_read_published_pages"
+--   ON public.pages
+--   FOR SELECT
+--   TO authenticated
+--   USING (status = 'published');
+
+-- Example: Allow authenticated users to read media
+-- CREATE POLICY "authenticated_read_media"
+--   ON public.media
+--   FOR SELECT
+--   TO authenticated
+--   USING (true);
+
+-- Example: Allow anon users to read published pages (public site)
+-- CREATE POLICY "anon_read_published_pages"
+--   ON public.pages
+--   FOR SELECT
+--   TO anon
+--   USING (status = 'published');
+
+-- =============================================================
+-- Custom project tables (add your own tables + policies below)
+-- The auto_enable_rls trigger will automatically enable RLS on
+-- any new table created in the public schema.
+-- =============================================================

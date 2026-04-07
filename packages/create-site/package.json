@@ -1,0 +1,15 @@
+{
+  "name": "@agency/create-site",
+  "version": "1.0.0",
+  "description": "Create a new website project from the agency template",
+  "type": "module",
+  "bin": {
+    "create-site": "./index.mjs"
+  },
+  "files": ["index.mjs"],
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": ["website", "template", "astro", "nextjs", "supabase"],
+  "license": "MIT"
+}
