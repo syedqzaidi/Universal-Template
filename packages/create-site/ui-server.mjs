@@ -2,7 +2,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import { spawn, exec } from 'node:child_process';
+import { spawn, exec, execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -95,7 +95,7 @@ export function startUI(args) {
       return;
     }
 
-    // API: Read .ports file from project
+    // API: Read ports — from .ports file + detect live Docker container ports
     if (url.pathname === '/api/ports') {
       const projPath = url.searchParams.get('path');
       if (!projPath) {
@@ -103,22 +103,62 @@ export function startUI(args) {
         res.end(JSON.stringify({ error: 'path parameter required' }));
         return;
       }
+      const ports = {};
+
+      // 1. Try reading .ports file
       const portsFile = path.join(projPath, '.ports');
       try {
         const content = fs.readFileSync(portsFile, 'utf-8');
-        const ports = {};
         for (const line of content.split('\n')) {
           const trimmed = line.trim();
           if (!trimmed || trimmed.startsWith('#')) continue;
           const [key, val] = trimmed.split('=');
           if (key && val) ports[key.trim()] = parseInt(val.trim(), 10);
         }
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(ports));
-      } catch {
-        res.writeHead(404, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: '.ports file not found' }));
+      } catch {}
+
+      // 2. Detect live Docker ports as fallback/override for accuracy
+      try {
+        const dockerPs = execSync('docker ps --format "{{.Names}}|{{.Ports}}" 2>/dev/null', { encoding: 'utf-8', timeout: 5000 });
+        for (const line of dockerPs.split('\n')) {
+          if (!line.includes('|')) continue;
+          const [name, portsStr] = line.split('|');
+          // Extract host port from "0.0.0.0:PORT->CONTAINER_PORT/tcp"
+          const portMatch = portsStr.match(/0\.0\.0\.0:(\d+)->(\d+)/);
+          if (!portMatch) continue;
+          const hostPort = parseInt(portMatch[1]);
+          const containerPort = parseInt(portMatch[2]);
+
+          // Supabase services
+          if (name.includes('supabase_kong')) ports.SUPABASE_API = hostPort;
+          if (name.includes('supabase_db') && containerPort === 5432) ports.SUPABASE_DB = hostPort;
+          if (name.includes('supabase_studio')) ports.SUPABASE_STUDIO = hostPort;
+          if (name.includes('supabase_inbucket') || name.includes('supabase_mailpit')) ports.SUPABASE_MAILPIT = hostPort;
+          if (name.includes('supabase_analytics')) ports.SUPABASE_ANALYTICS = hostPort;
+
+          // Twenty CRM
+          if (name.includes('twenty-twenty-1') && containerPort === 3000) ports.TWENTY = hostPort;
+        }
+      } catch {}
+
+      // 3. Detect dev server ports from config files if not in .ports
+      if (!ports.ASTRO) {
+        try {
+          const astroConf = fs.readFileSync(path.join(projPath, 'templates/astro-site/astro.config.mjs'), 'utf-8');
+          const m = astroConf.match(/port:\s*(\d+)/);
+          if (m) ports.ASTRO = parseInt(m[1]);
+        } catch {}
       }
+      if (!ports.NEXTJS) {
+        try {
+          const nextPkg = fs.readFileSync(path.join(projPath, 'templates/next-app/package.json'), 'utf-8');
+          const m = nextPkg.match(/--port\s+(\d+)/);
+          if (m) ports.NEXTJS = parseInt(m[1]);
+        } catch {}
+      }
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(ports));
       return;
     }
 
