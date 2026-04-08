@@ -660,11 +660,29 @@
   }
 
   // -- URL Table --
+  function getSelectedServiceIds() {
+    if (selectedPreset) {
+      var PRESET_MAP = {
+        'full': ['astro','nextjs','supabase','payload','twenty','sentry','posthog','resend'],
+        'marketing': ['astro','supabase','sentry','posthog'],
+        'dashboard': ['nextjs','payload','supabase','sentry'],
+        'both-frameworks': ['astro','nextjs','supabase','sentry'],
+        'minimal': ['astro'],
+        'nextjs-minimal': ['nextjs'],
+      };
+      return PRESET_MAP[selectedPreset] || [];
+    }
+    return Array.from(selectedServices);
+  }
+
   function renderURLTable() {
     var tbody = $('urlTableBody');
     tbody.textContent = '';
+    var activeIds = getSelectedServiceIds();
     for (var i = 0; i < defaultServiceURLs.length; i++) {
       var svc = defaultServiceURLs[i];
+      // Only show services that were selected
+      if (svc.service && activeIds.indexOf(svc.service) === -1) continue;
       var state = svc.server ? serverStates[svc.server] : null;
       var running = state && state.status === 'running';
       // Get port: from running server, or from .ports file, or unknown
