@@ -214,13 +214,16 @@
   ];
 
   var defaultServiceURLs = [
-    { name: 'Astro Website', service: 'astro', server: 'astro' },
-    { name: 'Next.js App', service: 'nextjs', server: 'next' },
-    { name: 'Payload CMS Admin', service: 'payload', server: 'next', suffix: '/admin' },
-    { name: 'Supabase Studio', service: 'supabase', server: null },
-    { name: 'Supabase Mailpit', service: 'supabase', server: null },
-    { name: 'Twenty CRM', service: 'twenty', server: null },
+    { name: 'Astro Website', service: 'astro', server: 'astro', portKey: 'ASTRO', suffix: '' },
+    { name: 'Next.js App', service: 'nextjs', server: 'next', portKey: 'NEXTJS', suffix: '' },
+    { name: 'Payload CMS Admin', service: 'payload', server: 'next', portKey: 'NEXTJS', suffix: '/admin' },
+    { name: 'Supabase Studio', service: 'supabase', server: null, portKey: 'SUPABASE_STUDIO', suffix: '' },
+    { name: 'Supabase Mailpit', service: 'supabase', server: null, portKey: 'SUPABASE_MAILPIT', suffix: '' },
+    { name: 'Twenty CRM', service: 'twenty', server: null, portKey: 'TWENTY', suffix: '' },
   ];
+
+  // Ports read from the project's .ports file after creation
+  var projectPorts = {};
 
   // -- Helpers --
   function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
@@ -516,6 +519,7 @@
       $('successBanner').textContent = 'Project created at ' + data.projectPath;
       $('successBanner').classList.add('visible');
       projectPath = data.projectPath;
+      fetchProjectPorts();
       showServerPanel();
     } else {
       btn.textContent = 'Create Project';
@@ -643,25 +647,59 @@
     el.scrollTop = el.scrollHeight;
   }
 
+  // -- Fetch project ports from .ports file --
+  async function fetchProjectPorts() {
+    if (!projectPath) return;
+    try {
+      var res = await fetch('/api/ports?path=' + encodeURIComponent(projectPath));
+      if (res.ok) {
+        projectPorts = await res.json();
+        renderURLTable();
+      }
+    } catch(e) {}
+  }
+
   // -- URL Table --
   function renderURLTable() {
     var tbody = $('urlTableBody');
-    var html = '';
+    tbody.textContent = '';
     for (var i = 0; i < defaultServiceURLs.length; i++) {
       var svc = defaultServiceURLs[i];
       var state = svc.server ? serverStates[svc.server] : null;
       var running = state && state.status === 'running';
-      var port = running ? state.port : svc.port;
-      var url = 'http://localhost:' + port;
-      var statusDot = running
-        ? '<span style="color:#22c55e">&#9679;</span>'
-        : '<span style="color:#444">&#9679;</span>';
-      var link = running
-        ? '<a href="' + esc(url) + '" target="_blank">' + esc(url) + '</a>'
-        : '<span style="color:#666">' + esc(url) + '</span>';
-      html += '<tr><td>' + esc(svc.name) + '</td><td>' + link + '</td><td>' + statusDot + '</td></tr>';
+      // Get port: from running server, or from .ports file, or unknown
+      var port = running && state.port ? state.port : (projectPorts[svc.portKey] || null);
+      var tr = document.createElement('tr');
+      var tdName = document.createElement('td');
+      tdName.textContent = svc.name;
+      var tdUrl = document.createElement('td');
+      var tdStatus = document.createElement('td');
+      if (port) {
+        var url = 'http://localhost:' + port + (svc.suffix || '');
+        if (running || !svc.server) {
+          // Clickable link for running servers or Docker services (always running)
+          var a = document.createElement('a');
+          a.href = url;
+          a.target = '_blank';
+          a.textContent = url;
+          tdUrl.appendChild(a);
+        } else {
+          tdUrl.style.color = '#666';
+          tdUrl.textContent = url;
+        }
+      } else {
+        tdUrl.style.color = '#666';
+        tdUrl.textContent = 'Port not yet assigned';
+      }
+      var dot = document.createElement('span');
+      dot.style.color = running ? '#22c55e' : (port && !svc.server ? '#22c55e' : '#444');
+      dot.textContent = '\u25CF';
+      tdStatus.appendChild(dot);
+      tr.appendChild(tdName);
+      tr.appendChild(tdUrl);
+      tr.appendChild(tdStatus);
+      tbody.appendChild(tr);
     }
-    tbody.innerHTML = html;
   }
 
   // -- Boot --

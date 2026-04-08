@@ -95,6 +95,33 @@ export function startUI(args) {
       return;
     }
 
+    // API: Read .ports file from project
+    if (url.pathname === '/api/ports') {
+      const projPath = url.searchParams.get('path');
+      if (!projPath) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'path parameter required' }));
+        return;
+      }
+      const portsFile = path.join(projPath, '.ports');
+      try {
+        const content = fs.readFileSync(portsFile, 'utf-8');
+        const ports = {};
+        for (const line of content.split('\n')) {
+          const trimmed = line.trim();
+          if (!trimmed || trimmed.startsWith('#')) continue;
+          const [key, val] = trimmed.split('=');
+          if (key && val) ports[key.trim()] = parseInt(val.trim(), 10);
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(ports));
+      } catch {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: '.ports file not found' }));
+      }
+      return;
+    }
+
     // API: Create project
     if (url.pathname === '/api/create' && req.method === 'POST') {
       const body = await readBody(req);
