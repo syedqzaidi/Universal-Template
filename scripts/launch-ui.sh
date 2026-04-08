@@ -8,9 +8,11 @@
 
 set -euo pipefail
 
-# Use jsDelivr CDN with version purging — much faster than raw.githubusercontent.com
-# jsDelivr purges within seconds vs GitHub raw's 5-min cache
-BASE_URL="https://cdn.jsdelivr.net/gh/syedqzaidi/agency-web-stack@main"
+# Use GitHub API to download raw files — no CDN caching issues
+# raw.githubusercontent.com caches for 5 min, jsDelivr has branch resolution lag
+# The API always returns the latest content
+REPO="syedqzaidi/agency-web-stack"
+BRANCH="main"
 
 echo ""
 echo "  Agency Web Stack — Launching GUI..."
@@ -32,11 +34,14 @@ echo "  OK: Node.js $(node --version)"
 TMPDIR=$(mktemp -d)
 trap "rm -rf $TMPDIR" EXIT
 
-# Download UI files (cache-bust to avoid GitHub's 5-min CDN cache)
-BUST="$(date +%s)"
+# Download UI files via GitHub API (bypasses CDN cache entirely)
 echo "  Downloading UI..."
-curl -fsSL "${BASE_URL}/packages/create-site/ui-server.mjs?cb=${BUST}" -o "${TMPDIR}/ui-server.mjs"
-curl -fsSL "${BASE_URL}/packages/create-site/ui.html?cb=${BUST}" -o "${TMPDIR}/ui.html"
+curl -fsSL -H "Accept: application/vnd.github.v3.raw" \
+  "https://api.github.com/repos/${REPO}/contents/packages/create-site/ui-server.mjs?ref=${BRANCH}" \
+  -o "${TMPDIR}/ui-server.mjs"
+curl -fsSL -H "Accept: application/vnd.github.v3.raw" \
+  "https://api.github.com/repos/${REPO}/contents/packages/create-site/ui.html?ref=${BRANCH}" \
+  -o "${TMPDIR}/ui.html"
 echo "  OK: UI files ready"
 echo ""
 echo "  Opening http://localhost:3333 ..."
