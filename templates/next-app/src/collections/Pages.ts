@@ -1,10 +1,17 @@
 import type { CollectionConfig } from 'payload'
+import { isAdminOrEditor, publishedOrLoggedIn } from '../access'
 
 export const Pages: CollectionConfig = {
   slug: 'pages',
   admin: {
     useAsTitle: 'title',
     group: 'Content',
+  },
+  access: {
+    read: publishedOrLoggedIn,
+    create: isAdminOrEditor,
+    update: isAdminOrEditor,
+    delete: isAdminOrEditor,
   },
   versions: {
     drafts: {

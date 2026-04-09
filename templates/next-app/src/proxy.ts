@@ -20,13 +20,20 @@ async function checkPayloadRedirects(
     return null
   }
 
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 2000)
+
   try {
     const serverUrl =
       process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3100'
     const res = await fetch(
       `${serverUrl}/api/redirects?where[from][equals]=${encodeURIComponent(pathname)}&limit=1`,
-      { next: { tags: ['redirects'] } },
+      {
+        signal: controller.signal,
+        next: { tags: ['redirects'] },
+      },
     )
+    clearTimeout(timeoutId)
 
     if (!res.ok) return null
 
@@ -43,9 +50,12 @@ async function checkPayloadRedirects(
 
     if (!destination) return null
 
-    const statusCode = redirect.type === '301' ? 301 : 302
-    return NextResponse.redirect(new URL(destination, request.url), statusCode)
+    return NextResponse.redirect(
+      new URL(destination, request.url),
+      redirect.type === '301' ? 301 : 302,
+    )
   } catch {
+    clearTimeout(timeoutId)
     // Fail open — don't block requests if redirect lookup fails
     return null
   }
