@@ -26,6 +26,9 @@ export const Users: CollectionConfig = {
       ],
       defaultValue: 'editor',
       required: true,
+      access: {
+        update: ({ req: { user } }) => Boolean(user?.role === 'admin'),
+      },
     },
   ],
 }
