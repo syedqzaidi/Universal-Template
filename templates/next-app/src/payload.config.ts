@@ -28,8 +28,13 @@ export default buildConfig({
   },
   db: postgresAdapter({
     pool: {
+      // DATABASE_URL is set by init-project.sh with the correct port.
+      // No fallback — if missing, Payload should fail immediately rather than
+      // silently connecting to the wrong port.
       connectionString: process.env.DATABASE_URL || (() => {
-        throw new Error('DATABASE_URL is not set.')
+        throw new Error(
+          'DATABASE_URL is not set. Run ./scripts/init-project.sh or check your .env.local file.',
+        )
       })(),
     },
   }),
