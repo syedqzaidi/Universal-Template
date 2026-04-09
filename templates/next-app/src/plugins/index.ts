@@ -2,6 +2,8 @@ import { nestedDocsPlugin } from '@payloadcms/plugin-nested-docs'
 import { redirectsPlugin } from '@payloadcms/plugin-redirects'
 import { seoPlugin } from '@payloadcms/plugin-seo'
 import { searchPlugin } from '@payloadcms/plugin-search'
+import { formBuilderPlugin } from '@payloadcms/plugin-form-builder'
+import { importExportPlugin } from '@payloadcms/plugin-import-export'
 import type { Plugin } from 'payload'
 
 export function getPlugins(): Plugin[] {
@@ -48,6 +50,36 @@ export function getPlugins(): Plugin[] {
       },
       syncDrafts: false,
       deleteDrafts: true,
+    }),
+  )
+
+  plugins.push(
+    formBuilderPlugin({
+      fields: {
+        text: true,
+        textarea: true,
+        select: true,
+        email: true,
+        number: true,
+        checkbox: true,
+        message: true,
+      },
+      redirectRelationships: ['pages'],
+      formOverrides: {
+        admin: { group: 'Forms' },
+      },
+      formSubmissionOverrides: {
+        admin: { group: 'Forms' },
+      },
+    }),
+  )
+
+  plugins.push(
+    importExportPlugin({
+      collections: [
+        { slug: 'pages' },
+        { slug: 'media' },
+      ],
     }),
   )
 
