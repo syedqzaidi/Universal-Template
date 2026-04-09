@@ -21,7 +21,7 @@ export function getPlugins(): Plugin[] {
       uploadsCollection: 'media',
       tabbedUI: true,
       generateTitle: ({ doc }) =>
-        `${doc.title as string} | Site Name`,
+        `${doc.title as string} | ${process.env.NEXT_PUBLIC_SITE_NAME || 'Site Name'}`,
       generateDescription: ({ doc }) =>
         (doc.title as string) || '',
       generateURL: ({ doc }) =>
@@ -32,6 +32,7 @@ export function getPlugins(): Plugin[] {
   plugins.push(
     redirectsPlugin({
       collections: ['pages'],
+      redirectTypes: ['301', '302'],
       overrides: {
         admin: { group: 'Content' },
       },
