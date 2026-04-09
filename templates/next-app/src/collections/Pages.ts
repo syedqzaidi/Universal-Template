@@ -6,9 +6,18 @@ export const Pages: CollectionConfig = {
     useAsTitle: 'title',
     group: 'Content',
   },
+  versions: {
+    drafts: {
+      autosave: {
+        interval: 1500,
+      },
+      schedulePublish: true,
+    },
+    maxPerDoc: 25,
+  },
   fields: [
-    { name: 'title', type: 'text', required: true },
+    { name: 'title', type: 'text', required: true, localized: true },
     { name: 'slug', type: 'text', required: true, unique: true },
-    { name: 'content', type: 'richText' },
+    { name: 'content', type: 'richText', localized: true },
   ],
 }

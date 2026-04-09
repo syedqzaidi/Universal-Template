@@ -1,6 +1,7 @@
 import { nestedDocsPlugin } from '@payloadcms/plugin-nested-docs'
 import { redirectsPlugin } from '@payloadcms/plugin-redirects'
 import { seoPlugin } from '@payloadcms/plugin-seo'
+import { searchPlugin } from '@payloadcms/plugin-search'
 import type { Plugin } from 'payload'
 
 export function getPlugins(): Plugin[] {
@@ -35,6 +36,15 @@ export function getPlugins(): Plugin[] {
       redirectTypes: ['301', '302'],
       overrides: {
         admin: { group: 'Content' },
+      },
+    }),
+  )
+
+  plugins.push(
+    searchPlugin({
+      collections: ['pages'],
+      defaultPriorities: {
+        pages: 10,
       },
     }),
   )

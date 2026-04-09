@@ -7,6 +7,6 @@ export const Media: CollectionConfig = {
     group: 'Content',
   },
   fields: [
-    { name: 'alt', type: 'text', required: true },
+    { name: 'alt', type: 'text', required: true, localized: true },
   ],
 }

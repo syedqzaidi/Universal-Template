@@ -15,6 +15,32 @@ export default buildConfig({
       baseDir: path.resolve(dirname),
     },
     user: 'users',
+    livePreview: {
+      url: ({ data, collectionConfig, locale }) => {
+        const baseUrl = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3100'
+        const slug = (data as any)?.slug || ''
+        const localeParam = locale?.code && locale.code !== 'en' ? `?locale=${locale.code}` : ''
+        if (collectionConfig?.slug === 'pages') {
+          return `${baseUrl}/${slug}${localeParam}`
+        }
+        return baseUrl
+      },
+      collections: ['pages'],
+      breakpoints: [
+        { label: 'Mobile', name: 'mobile', width: 375, height: 667 },
+        { label: 'Tablet', name: 'tablet', width: 768, height: 1024 },
+        { label: 'Desktop', name: 'desktop', width: 1440, height: 900 },
+      ],
+    },
+  },
+  localization: {
+    locales: [
+      { label: 'English', code: 'en' },
+      { label: 'Spanish', code: 'es' },
+      { label: 'French', code: 'fr' },
+    ],
+    defaultLocale: 'en',
+    fallback: true,
   },
   serverURL: process.env.NEXT_PUBLIC_SERVER_URL || '',
   collections: [Pages, Media, Users],
