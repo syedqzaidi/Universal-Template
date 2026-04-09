@@ -9,6 +9,11 @@ import { vercelBlobStorage } from '@payloadcms/storage-vercel-blob'
 import { sentryPlugin } from '@payloadcms/plugin-sentry'
 import * as Sentry from '@sentry/nextjs'
 import { stripePlugin } from '@payloadcms/plugin-stripe'
+import { mcpPlugin } from '@payloadcms/plugin-mcp'
+import { payloadAiPlugin } from '@ai-stack/payloadcms'
+import { betterLocalizedFields } from '@payload-enchants/better-localized-fields'
+import { docsReorder } from '@payload-enchants/docs-reorder'
+import { buildCachedPayload } from '@payload-enchants/cached-local-api'
 import type { Plugin } from 'payload'
 
 export function getPlugins(): Plugin[] {
@@ -138,6 +143,34 @@ export function getPlugins(): Plugin[] {
       }),
     )
   }
+
+  // MCP plugin — exposes Payload CMS via Model Context Protocol
+  plugins.push(mcpPlugin({}))
+
+  // AI plugin — conditional on OpenAI API key
+  if (process.env.OPENAI_API_KEY) {
+    plugins.push(
+      payloadAiPlugin({
+        collections: {
+          pages: true,
+        },
+        debugging: process.env.NODE_ENV !== 'production',
+      }),
+    )
+  }
+
+  // Enchants plugins — added last so cachedLocalApi wraps all operations above it
+  const { cachedPayloadPlugin } = buildCachedPayload({
+    collections: [{ slug: 'pages' }, { slug: 'media' }, { slug: 'users' }],
+    revalidateTag: () => {},
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    unstable_cache: (cb: any) => cb,
+  })
+  plugins.push(
+    betterLocalizedFields(),
+    docsReorder({ collections: [{ slug: 'pages' }] }),
+    cachedPayloadPlugin,
+  )
 
   // Sentry plugin — unshifted to be first in array so it wraps all other operations
   plugins.unshift(
