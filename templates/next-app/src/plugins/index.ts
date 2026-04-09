@@ -46,6 +46,8 @@ export function getPlugins(): Plugin[] {
       defaultPriorities: {
         pages: 10,
       },
+      syncDrafts: false,
+      deleteDrafts: true,
     }),
   )
 
