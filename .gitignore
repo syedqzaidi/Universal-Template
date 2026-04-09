@@ -49,3 +49,6 @@ pnpm-debug.log*
 
 # Third-party cloned tools (install separately)
 tools/ai-website-cloner/
+
+# Git worktrees
+.worktrees/
