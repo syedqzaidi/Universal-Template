@@ -10,6 +10,7 @@ import { sentryPlugin } from '@payloadcms/plugin-sentry'
 import * as Sentry from '@sentry/nextjs'
 import { stripePlugin } from '@payloadcms/plugin-stripe'
 import { mcpPlugin } from '@payloadcms/plugin-mcp'
+import { mcpConfig } from '../mcp'
 import { payloadAiPlugin } from '@ai-stack/payloadcms'
 // NOTE: @payload-enchants packages (v1.2.2) are incompatible with Payload 3.82.x
 // They import removed exports from @payloadcms/ui (useListInfo, useFieldProps).
@@ -257,7 +258,8 @@ export function getPlugins(): Plugin[] {
   }
 
   // MCP plugin — exposes Payload CMS via Model Context Protocol
-  plugins.push(mcpPlugin({}))
+  // Configured with 33 custom tools, 5 prompts, and granular collection permissions
+  plugins.push(mcpPlugin(mcpConfig))
 
   // AI plugin — activates when any supported AI provider key is set
   const hasAiProvider =
