@@ -150,13 +150,57 @@ export function getPlugins(): Plugin[] {
   // MCP plugin — exposes Payload CMS via Model Context Protocol
   plugins.push(mcpPlugin({}))
 
-  // AI plugin — conditional on OpenAI API key
-  if (process.env.OPENAI_API_KEY) {
+  // AI plugin — activates when any supported AI provider key is set
+  const hasAiProvider =
+    process.env.OPENAI_API_KEY ||
+    process.env.ANTHROPIC_API_KEY ||
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY
+
+  if (hasAiProvider) {
     plugins.push(
       payloadAiPlugin({
+        // Enable AI on pages (text compose, proofread, translate, rephrase, expand, simplify, summarize)
         collections: {
           pages: true,
         },
+
+        // Route generated images to the media collection
+        uploadCollectionSlug: 'media',
+
+        // Access control — editors+ can generate, only admins can edit AI settings/prompts
+        access: {
+          generate: ({ req }) =>
+            req.user?.role === 'admin' || req.user?.role === 'editor',
+          settings: ({ req }) => req.user?.role === 'admin',
+        },
+
+        // Lock translation languages to match our i18n config (en/es/fr)
+        options: {
+          enabledLanguages: ['en-US', 'es', 'fr'],
+        },
+
+        // Auto-populate AI prompts for SEO meta fields
+        seedPrompts: ({ path }) => {
+          if (path.endsWith('.meta.title')) {
+            return {
+              data: {
+                prompt:
+                  'Generate an SEO-optimized page title (50-60 chars) for: {{ title }}',
+              },
+            }
+          }
+          if (path.endsWith('.meta.description')) {
+            return {
+              data: {
+                prompt:
+                  'Generate an SEO meta description (150-160 chars) summarizing this page. Title: {{ title }}',
+              },
+            }
+          }
+          if (path.endsWith('.slug')) return false // Disable AI for slugs
+          return undefined // Use default prompts for everything else
+        },
+
         debugging: process.env.NODE_ENV !== 'production',
       }),
     )
