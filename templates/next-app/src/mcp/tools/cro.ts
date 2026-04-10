@@ -76,8 +76,11 @@ export const croTools = [
       const id = args.id as string
       const customVariantSlug = args.variantSlug as string | undefined
 
-      const original = await req.payload.findByID({ collection: 'pages', id }) as Record<string, unknown>
-      const { id: _id, createdAt, updatedAt, ...rest } = original
+      // Fix #5: depth:0 prevents relationship fields from being populated (avoids nested objects
+      // being re-submitted as IDs and causing Payload validation errors on create).
+      const original = await req.payload.findByID({ collection: 'pages', id, depth: 0 }) as Record<string, unknown>
+      // Explicitly strip fields that must not be copied: id, timestamps, and version/publish metadata.
+      const { id: _id, createdAt, updatedAt, _status, publishedAt, ...rest } = original
 
       const baseSlug = typeof rest.slug === 'string' ? rest.slug : 'page'
       const variantSlug = customVariantSlug ?? `${baseSlug}-variant`

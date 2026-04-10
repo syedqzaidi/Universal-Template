@@ -9,10 +9,34 @@ export const searchRedirectsTools = [
     description: 'Delete all documents in the search collection and reindex all published pages.',
     parameters: {} as Record<string, never>,
     handler: async (_args: Record<string, unknown>, req: PayloadRequest, _extra: unknown) => {
-      await req.payload.delete({
-        collection: 'search',
-        where: { id: { exists: true } },
-      })
+      // Fix #1: Payload 3 delete requires a single id — find all docs first, then delete each by ID.
+      let deletedCount = 0
+      let deleteErrors: Array<{ id: unknown; error: string }> = []
+
+      try {
+        const existing = await req.payload.find({
+          collection: 'search',
+          limit: 10000,
+          depth: 0,
+        })
+
+        for (const doc of existing.docs) {
+          try {
+            await req.payload.delete({ collection: 'search', id: doc.id as string })
+            deletedCount++
+          } catch (err) {
+            deleteErrors.push({ id: doc.id, error: err instanceof Error ? err.message : String(err) })
+          }
+        }
+      } catch (err) {
+        return text(
+          JSON.stringify(
+            { success: false, error: 'Failed to find existing search docs', details: err instanceof Error ? err.message : String(err) },
+            null,
+            2,
+          ),
+        )
+      }
 
       const pages = await req.payload.find({
         collection: 'pages',
@@ -20,18 +44,37 @@ export const searchRedirectsTools = [
         limit: 1000,
       })
 
+      let reindexed = 0
+      const reindexErrors: Array<{ pageId: unknown; error: string }> = []
+
       for (const page of pages.docs) {
-        await req.payload.create({
-          collection: 'search',
-          data: {
-            doc: { value: page.id, relationTo: 'pages' },
-            priority: 10,
-          },
-        })
+        try {
+          await req.payload.create({
+            collection: 'search',
+            data: {
+              doc: { value: page.id, relationTo: 'pages' },
+              priority: 10,
+            },
+          })
+          reindexed++
+        } catch (err) {
+          reindexErrors.push({ pageId: page.id, error: err instanceof Error ? err.message : String(err) })
+        }
       }
 
-      const count = pages.docs.length
-      return text(JSON.stringify({ success: true, reindexed: count }, null, 2))
+      return text(
+        JSON.stringify(
+          {
+            success: reindexErrors.length === 0,
+            deleted: deletedCount,
+            deleteErrors: deleteErrors.length > 0 ? deleteErrors : undefined,
+            reindexed,
+            reindexErrors: reindexErrors.length > 0 ? reindexErrors : undefined,
+          },
+          null,
+          2,
+        ),
+      )
     },
   },
   {
@@ -45,7 +88,17 @@ export const searchRedirectsTools = [
     handler: async (args: Record<string, unknown>, req: PayloadRequest, _extra: unknown) => {
       const from = args.from as string
       const to = args.to as string
+      const type = (args.type as string | undefined) ?? '301'
 
+      // Fix #4: Basic URL validation
+      if (!from.startsWith('/')) {
+        return text(JSON.stringify({ success: false, error: '`from` must start with a `/`' }, null, 2))
+      }
+      if (!to || to.trim() === '') {
+        return text(JSON.stringify({ success: false, error: '`to` must be non-empty' }, null, 2))
+      }
+
+      // Fix #3: Pass `type` to the redirect document
       const redirect = await req.payload.create({
         collection: 'redirects',
         data: {
@@ -54,10 +107,11 @@ export const searchRedirectsTools = [
             type: 'custom',
             url: to,
           },
+          type,
         },
       })
 
-      return text(JSON.stringify({ success: true, id: redirect.id, from, to }, null, 2))
+      return text(JSON.stringify({ success: true, id: redirect.id, from, to, type }, null, 2))
     },
   },
   {
@@ -75,23 +129,50 @@ export const searchRedirectsTools = [
         return text(JSON.stringify({ success: false, error: 'Invalid JSON: could not parse redirects string' }, null, 2))
       }
 
-      let created = 0
+      // Fix #2 & #3: Per-entry error handling and pass `type` to each redirect
+      const successes: Array<{ index: number; from: string; to: string; id: unknown }> = []
+      const failures: Array<{ index: number; from: string; to: string; error: string }> = []
 
-      for (const entry of entries) {
-        await req.payload.create({
-          collection: 'redirects',
-          data: {
-            from: entry.from,
-            to: {
-              type: 'custom',
-              url: entry.to,
+      for (let i = 0; i < entries.length; i++) {
+        const entry = entries[i]
+        const type = entry.type ?? '301'
+
+        try {
+          const created = await req.payload.create({
+            collection: 'redirects',
+            data: {
+              from: entry.from,
+              to: {
+                type: 'custom',
+                url: entry.to,
+              },
+              type,
             },
-          },
-        })
-        created++
+          })
+          successes.push({ index: i, from: entry.from, to: entry.to, id: created.id })
+        } catch (err) {
+          failures.push({
+            index: i,
+            from: entry.from,
+            to: entry.to,
+            error: err instanceof Error ? err.message : String(err),
+          })
+        }
       }
 
-      return text(JSON.stringify({ success: true, created }, null, 2))
+      return text(
+        JSON.stringify(
+          {
+            success: failures.length === 0,
+            created: successes.length,
+            failed: failures.length,
+            successes,
+            failures: failures.length > 0 ? failures : undefined,
+          },
+          null,
+          2,
+        ),
+      )
     },
   },
 ]

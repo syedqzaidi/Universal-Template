@@ -3,13 +3,28 @@ import type { PayloadRequest } from 'payload'
 
 const text = (t: string) => ({ content: [{ text: t, type: 'text' as const }] })
 
+function extractLexicalText(node: unknown): string {
+  if (!node || typeof node !== 'object') return ''
+  const n = node as Record<string, unknown>
+  // Leaf text node — extract the actual text value
+  if (n.type === 'text' && typeof n.text === 'string') return n.text
+  // Recurse into children array
+  if (Array.isArray(n.children)) {
+    return (n.children as unknown[]).map(extractLexicalText).join(' ')
+  }
+  // Root / editor state wrapper: try common top-level keys
+  const rootKeys = ['root', 'editorState']
+  for (const key of rootKeys) {
+    if (key in n) return extractLexicalText(n[key])
+  }
+  return ''
+}
+
 function estimateWordCount(content: unknown): number {
   if (!content) return 0
-  return JSON.stringify(content)
-    .replace(/<[^>]*>/g, '')
-    .replace(/[{}[\]",:]/g, ' ')
-    .split(/\s+/)
-    .filter(Boolean).length
+  const extracted = extractLexicalText(content).trim()
+  if (!extracted) return 0
+  return extracted.split(/\s+/).filter(Boolean).length
 }
 
 function countHeadings(content: unknown): number {
@@ -118,9 +133,7 @@ export const contentQualityTools = [
       const allUrls = contentStr.match(urlRegex) ?? []
       const uniqueUrls = [...new Set(allUrls)].slice(0, 20)
 
-      const results: Array<{ url: string; status: number | string; broken: boolean }> = []
-
-      for (const url of uniqueUrls) {
+      const fetchOne = async (url: string): Promise<{ url: string; status: number | string; broken: boolean }> => {
         const controller = new AbortController()
         const timeout = setTimeout(() => controller.abort(), 5000)
         try {
@@ -130,20 +143,19 @@ export const contentQualityTools = [
             redirect: 'follow',
           })
           clearTimeout(timeout)
-          results.push({
-            url,
-            status: response.status,
-            broken: response.status >= 400,
-          })
-        } catch (err) {
+          return { url, status: response.status, broken: response.status >= 400 }
+        } catch {
           clearTimeout(timeout)
-          results.push({
-            url,
-            status: controller.signal.aborted ? 'timeout' : 'error',
-            broken: true,
-          })
+          return { url, status: controller.signal.aborted ? 'timeout' : 'error', broken: true }
         }
       }
+
+      const settled = await Promise.allSettled(uniqueUrls.map(fetchOne))
+      const results = settled.map((outcome) =>
+        outcome.status === 'fulfilled'
+          ? outcome.value
+          : { url: '', status: 'error', broken: true },
+      )
 
       const broken = results.filter((r) => r.broken)
       const report = {

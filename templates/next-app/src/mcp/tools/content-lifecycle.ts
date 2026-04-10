@@ -10,8 +10,12 @@ export const contentLifecycleTools = [
     parameters: { id: z.string() },
     handler: async (args: Record<string, unknown>, req: PayloadRequest, _extra: unknown) => {
       const id = args.id as string
-      await req.payload.update({ collection: 'pages', id, data: { _status: 'published' } })
-      return text(`Page ${id} has been published.`)
+      try {
+        await req.payload.update({ collection: 'pages', id, data: { _status: 'published' } })
+        return text(`Page ${id} has been published.`)
+      } catch (err) {
+        return text(`Error: Failed to publish page ${id}. ${err instanceof Error ? err.message : String(err)}`)
+      }
     },
   },
   {
@@ -20,8 +24,12 @@ export const contentLifecycleTools = [
     parameters: { id: z.string() },
     handler: async (args: Record<string, unknown>, req: PayloadRequest, _extra: unknown) => {
       const id = args.id as string
-      await req.payload.update({ collection: 'pages', id, data: { _status: 'draft' } })
-      return text(`Page ${id} has been unpublished (set to draft).`)
+      try {
+        await req.payload.update({ collection: 'pages', id, data: { _status: 'draft' } })
+        return text(`Page ${id} has been unpublished (set to draft).`)
+      } catch (err) {
+        return text(`Error: Failed to unpublish page ${id}. ${err instanceof Error ? err.message : String(err)}`)
+      }
     },
   },
   {
@@ -30,14 +38,18 @@ export const contentLifecycleTools = [
     parameters: { id: z.string() },
     handler: async (args: Record<string, unknown>, req: PayloadRequest, _extra: unknown) => {
       const id = args.id as string
-      const original = await req.payload.findByID({ collection: 'pages', id })
-      const { id: _id, _status, createdAt, updatedAt, ...rest } = original as Record<string, unknown>
-      const slug = typeof rest.slug === 'string' ? `${rest.slug}-copy` : 'page-copy'
-      const created = await req.payload.create({
-        collection: 'pages',
-        data: { ...rest, slug } as Record<string, unknown>,
-      })
-      return text(`Page duplicated. New page ID: ${created.id}`)
+      try {
+        const original = await req.payload.findByID({ collection: 'pages', id, depth: 0 })
+        const { id: _id, _status, createdAt, updatedAt, ...rest } = original as Record<string, unknown>
+        const slug = typeof rest.slug === 'string' ? `${rest.slug}-copy` : 'page-copy'
+        const created = await req.payload.create({
+          collection: 'pages',
+          data: { ...rest, slug, _status: 'draft' } as Record<string, unknown>,
+        })
+        return text(`Page duplicated. New page ID: ${created.id}`)
+      } catch (err) {
+        return text(`Error: Failed to duplicate page ${id}. ${err instanceof Error ? err.message : String(err)}`)
+      }
     },
   },
   {
@@ -47,12 +59,20 @@ export const contentLifecycleTools = [
     handler: async (args: Record<string, unknown>, req: PayloadRequest, _extra: unknown) => {
       const id = args.id as string
       const publishAt = args.publishAt as string
-      await req.payload.update({
-        collection: 'pages',
-        id,
-        data: { _status: 'draft', publishedAt: publishAt },
-      })
-      return text(`Page ${id} scheduled for publication at ${publishAt}.`)
+      const parsedDate = new Date(publishAt)
+      if (isNaN(parsedDate.getTime())) {
+        return text(`Error: Invalid date "${publishAt}". Please provide a valid ISO 8601 date string.`)
+      }
+      try {
+        await req.payload.update({
+          collection: 'pages',
+          id,
+          data: { _status: 'draft', publishedAt: parsedDate.toISOString() },
+        })
+        return text(`Page ${id} scheduled for publication at ${parsedDate.toISOString()}.`)
+      } catch (err) {
+        return text(`Error: Failed to schedule page ${id}. ${err instanceof Error ? err.message : String(err)}`)
+      }
     },
   },
   {
@@ -61,17 +81,21 @@ export const contentLifecycleTools = [
     parameters: { id: z.string() },
     handler: async (args: Record<string, unknown>, req: PayloadRequest, _extra: unknown) => {
       const id = args.id as string
-      const page = await req.payload.findByID({ collection: 'pages', id }) as Record<string, unknown>
-      const currentTitle = typeof page.title === 'string' ? page.title : String(page.title ?? '')
-      const archivedTitle = currentTitle.startsWith('[archived] ')
-        ? currentTitle
-        : `[archived] ${currentTitle}`
-      await req.payload.update({
-        collection: 'pages',
-        id,
-        data: { _status: 'draft', title: archivedTitle },
-      })
-      return text(`Page ${id} has been archived.`)
+      try {
+        const page = await req.payload.findByID({ collection: 'pages', id, depth: 0 }) as Record<string, unknown>
+        const currentTitle = typeof page.title === 'string' ? page.title : String(page.title ?? '')
+        const archivedTitle = currentTitle.startsWith('[archived] ')
+          ? currentTitle
+          : `[archived] ${currentTitle}`
+        await req.payload.update({
+          collection: 'pages',
+          id,
+          data: { _status: 'draft', title: archivedTitle },
+        })
+        return text(`Page ${id} has been archived.`)
+      } catch (err) {
+        return text(`Error: Failed to archive page ${id}. ${err instanceof Error ? err.message : String(err)}`)
+      }
     },
   },
   {
@@ -80,10 +104,21 @@ export const contentLifecycleTools = [
     parameters: { ids: z.array(z.string()) },
     handler: async (args: Record<string, unknown>, req: PayloadRequest, _extra: unknown) => {
       const ids = args.ids as string[]
+      const succeeded: string[] = []
+      const failed: Array<{ id: string; error: string }> = []
       for (const id of ids) {
-        await req.payload.update({ collection: 'pages', id, data: { _status: 'published' } })
+        try {
+          await req.payload.update({ collection: 'pages', id, data: { _status: 'published' } })
+          succeeded.push(id)
+        } catch (err) {
+          failed.push({ id, error: err instanceof Error ? err.message : String(err) })
+        }
       }
-      return text(`Published ${ids.length} page(s).`)
+      const summary = [`Published ${succeeded.length}/${ids.length} page(s).`]
+      if (failed.length > 0) {
+        summary.push(`Failed (${failed.length}): ${failed.map(f => `${f.id} (${f.error})`).join(', ')}`)
+      }
+      return text(summary.join(' '))
     },
   },
   {
@@ -92,10 +127,21 @@ export const contentLifecycleTools = [
     parameters: { ids: z.array(z.string()) },
     handler: async (args: Record<string, unknown>, req: PayloadRequest, _extra: unknown) => {
       const ids = args.ids as string[]
+      const succeeded: string[] = []
+      const failed: Array<{ id: string; error: string }> = []
       for (const id of ids) {
-        await req.payload.update({ collection: 'pages', id, data: { _status: 'draft' } })
+        try {
+          await req.payload.update({ collection: 'pages', id, data: { _status: 'draft' } })
+          succeeded.push(id)
+        } catch (err) {
+          failed.push({ id, error: err instanceof Error ? err.message : String(err) })
+        }
       }
-      return text(`Unpublished ${ids.length} page(s).`)
+      const summary = [`Unpublished ${succeeded.length}/${ids.length} page(s).`]
+      if (failed.length > 0) {
+        summary.push(`Failed (${failed.length}): ${failed.map(f => `${f.id} (${f.error})`).join(', ')}`)
+      }
+      return text(summary.join(' '))
     },
   },
 ]

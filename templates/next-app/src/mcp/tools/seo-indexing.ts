@@ -4,6 +4,15 @@ import { google } from 'googleapis'
 
 const text = (t: string) => ({ content: [{ text: t, type: 'text' as const }] })
 
+function xmlEscape(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;')
+}
+
 export const seoIndexingTools = [
   {
     name: 'generate_sitemap',
@@ -20,11 +29,15 @@ export const seoIndexingTools = [
         .map((page: Record<string, unknown>) => {
           const slug = typeof page.slug === 'string' ? page.slug : ''
           const loc = slug === 'home' || slug === '' ? baseUrl : `${baseUrl}/${slug}`
-          return `  <url><loc>${loc}</loc></url>`
+          return `  <url><loc>${xmlEscape(loc)}</loc></url>`
         })
         .join('\n')
       const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>`
-      return text(xml)
+      const truncationWarning =
+        result.totalDocs > result.docs.length
+          ? `\nWarning: ${result.totalDocs} total pages, showing first ${result.docs.length}.`
+          : ''
+      return text(xml + truncationWarning)
     },
   },
   {
@@ -108,12 +121,16 @@ export const seoIndexingTools = [
           missing,
         }
       }).filter((entry) => entry.missing.length > 0)
-      return text(JSON.stringify(report, null, 2))
+      const truncationWarning =
+        result.totalDocs > result.docs.length
+          ? `\nWarning: ${result.totalDocs} total pages, showing first ${result.docs.length}.`
+          : ''
+      return text(JSON.stringify(report, null, 2) + truncationWarning)
     },
   },
   {
     name: 'generate_json_ld',
-    description: 'Generate Article schema.org JSON-LD for a page.',
+    description: 'Generate WebPage schema.org JSON-LD for a page.',
     parameters: { id: z.string() },
     handler: async (args: Record<string, unknown>, req: PayloadRequest, _extra: unknown) => {
       const id = args.id as string
