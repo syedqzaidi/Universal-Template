@@ -26,7 +26,7 @@ export const formsTools = [
         )
       }
 
-      const stats: Array<{ formId: string; formTitle: string; submissionCount: number }> = []
+      const stats: Array<{ formId: string; formTitle: string; submissionCount: number; error?: string }> = []
 
       for (const form of forms) {
         const formId = String(form.id)
@@ -55,8 +55,8 @@ export const formsTools = [
             formTitle,
             submissionCount: submissionsResult.totalDocs,
           })
-        } catch {
-          stats.push({ formId, formTitle, submissionCount: 0 })
+        } catch (err) {
+          stats.push({ formId, formTitle, submissionCount: 0, error: err instanceof Error ? err.message : String(err) })
         }
       }
 
@@ -83,7 +83,10 @@ export const formsTools = [
           limit: 500,
         })
 
-        return text(JSON.stringify(result.docs, null, 2))
+        const warning = result.totalDocs > result.docs.length
+          ? `\nWarning: ${result.totalDocs} total items, showing first ${result.docs.length}.`
+          : ''
+        return text(JSON.stringify(result.docs, null, 2) + warning)
       } catch (err) {
         return text(
           `Error fetching submissions: ${err instanceof Error ? err.message : String(err)}`,

@@ -19,25 +19,30 @@ export const seoIndexingTools = [
     description: 'Generate an XML sitemap for all published pages.',
     parameters: {},
     handler: async (_args: Record<string, unknown>, req: PayloadRequest, _extra: unknown) => {
-      const baseUrl = process.env.NEXT_PUBLIC_SERVER_URL ?? ''
-      const result = await req.payload.find({
-        collection: 'pages',
-        where: { _status: { equals: 'published' } },
-        limit: 1000,
-      })
-      const urls = result.docs
-        .map((page: Record<string, unknown>) => {
-          const slug = typeof page.slug === 'string' ? page.slug : ''
-          const loc = slug === 'home' || slug === '' ? baseUrl : `${baseUrl}/${slug}`
-          return `  <url><loc>${xmlEscape(loc)}</loc></url>`
+      try {
+        const baseUrl = process.env.NEXT_PUBLIC_SERVER_URL ?? ''
+        const result = await req.payload.find({
+          collection: 'pages',
+          where: { _status: { equals: 'published' } },
+          limit: 1000,
         })
-        .join('\n')
-      const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>`
-      const truncationWarning =
-        result.totalDocs > result.docs.length
-          ? `\nWarning: ${result.totalDocs} total pages, showing first ${result.docs.length}.`
-          : ''
-      return text(xml + truncationWarning)
+        const urls = result.docs
+          .map((page: Record<string, unknown>) => {
+            const slug = typeof page.slug === 'string' ? page.slug : ''
+            const loc = slug === 'home' || slug === '' ? baseUrl : `${baseUrl}/${slug}`
+            return `  <url><loc>${xmlEscape(loc)}</loc></url>`
+          })
+          .join('\n')
+        const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>`
+        const truncationWarning =
+          result.totalDocs > result.docs.length
+            ? `\nWarning: ${result.totalDocs} total pages, showing first ${result.docs.length}.`
+            : ''
+        return text(xml + truncationWarning)
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err)
+        return text(`Error: ${message}`)
+      }
     },
   },
   {
@@ -103,29 +108,34 @@ export const seoIndexingTools = [
     description: 'Audit all published pages for missing SEO fields (meta title, description, image).',
     parameters: {},
     handler: async (_args: Record<string, unknown>, req: PayloadRequest, _extra: unknown) => {
-      const result = await req.payload.find({
-        collection: 'pages',
-        where: { _status: { equals: 'published' } },
-        limit: 1000,
-      })
-      const report = result.docs.map((page: Record<string, unknown>) => {
-        const meta = (page.meta ?? {}) as Record<string, unknown>
-        const missing: string[] = []
-        if (!meta.title) missing.push('meta.title')
-        if (!meta.description) missing.push('meta.description')
-        if (!meta.image) missing.push('meta.image')
-        return {
-          id: page.id,
-          slug: page.slug,
-          title: page.title,
-          missing,
-        }
-      }).filter((entry) => entry.missing.length > 0)
-      const truncationWarning =
-        result.totalDocs > result.docs.length
-          ? `\nWarning: ${result.totalDocs} total pages, showing first ${result.docs.length}.`
-          : ''
-      return text(JSON.stringify(report, null, 2) + truncationWarning)
+      try {
+        const result = await req.payload.find({
+          collection: 'pages',
+          where: { _status: { equals: 'published' } },
+          limit: 1000,
+        })
+        const report = result.docs.map((page: Record<string, unknown>) => {
+          const meta = (page.meta ?? {}) as Record<string, unknown>
+          const missing: string[] = []
+          if (!meta.title) missing.push('meta.title')
+          if (!meta.description) missing.push('meta.description')
+          if (!meta.image) missing.push('meta.image')
+          return {
+            id: page.id,
+            slug: page.slug,
+            title: page.title,
+            missing,
+          }
+        }).filter((entry) => entry.missing.length > 0)
+        const truncationWarning =
+          result.totalDocs > result.docs.length
+            ? `\nWarning: ${result.totalDocs} total pages, showing first ${result.docs.length}.`
+            : ''
+        return text(JSON.stringify(report, null, 2) + truncationWarning)
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err)
+        return text(`Error: ${message}`)
+      }
     },
   },
   {
@@ -133,24 +143,29 @@ export const seoIndexingTools = [
     description: 'Generate WebPage schema.org JSON-LD for a page.',
     parameters: { id: z.string() },
     handler: async (args: Record<string, unknown>, req: PayloadRequest, _extra: unknown) => {
-      const id = args.id as string
-      const baseUrl = process.env.NEXT_PUBLIC_SERVER_URL ?? ''
-      const page = await req.payload.findByID({ collection: 'pages', id }) as Record<string, unknown>
-      const meta = (page.meta ?? {}) as Record<string, unknown>
-      const slug = typeof page.slug === 'string' ? page.slug : ''
-      const pageUrl = slug === 'home' || slug === '' ? baseUrl : `${baseUrl}/${slug}`
-      const jsonLd: Record<string, unknown> = {
-        '@context': 'https://schema.org',
-        '@type': 'WebPage',
-        name: meta.title ?? page.title ?? '',
-        description: meta.description ?? '',
-        url: pageUrl,
+      try {
+        const id = args.id as string
+        const baseUrl = process.env.NEXT_PUBLIC_SERVER_URL ?? ''
+        const page = await req.payload.findByID({ collection: 'pages', id }) as Record<string, unknown>
+        const meta = (page.meta ?? {}) as Record<string, unknown>
+        const slug = typeof page.slug === 'string' ? page.slug : ''
+        const pageUrl = slug === 'home' || slug === '' ? baseUrl : `${baseUrl}/${slug}`
+        const jsonLd: Record<string, unknown> = {
+          '@context': 'https://schema.org',
+          '@type': 'WebPage',
+          name: meta.title ?? page.title ?? '',
+          description: meta.description ?? '',
+          url: pageUrl,
+        }
+        const datePublished = page.publishedAt ?? page.createdAt
+        const dateModified = page.updatedAt
+        if (datePublished) jsonLd.datePublished = datePublished
+        if (dateModified) jsonLd.dateModified = dateModified
+        return text(JSON.stringify(jsonLd, null, 2))
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err)
+        return text(`Error: ${message}`)
       }
-      const datePublished = page.publishedAt ?? page.createdAt
-      const dateModified = page.updatedAt
-      if (datePublished) jsonLd.datePublished = datePublished
-      if (dateModified) jsonLd.dateModified = dateModified
-      return text(JSON.stringify(jsonLd, null, 2))
     },
   },
   {
@@ -158,26 +173,31 @@ export const seoIndexingTools = [
     description: 'Generate BreadcrumbList JSON-LD for a page using its breadcrumbs field.',
     parameters: { id: z.string() },
     handler: async (args: Record<string, unknown>, req: PayloadRequest, _extra: unknown) => {
-      const id = args.id as string
-      const baseUrl = process.env.NEXT_PUBLIC_SERVER_URL ?? ''
-      const page = await req.payload.findByID({ collection: 'pages', id }) as Record<string, unknown>
-      const breadcrumbs = Array.isArray(page.breadcrumbs) ? page.breadcrumbs : []
-      const itemListElement = breadcrumbs.map(
-        (crumb: Record<string, unknown>, index: number) => ({
-          '@type': 'ListItem',
-          position: index + 1,
-          name: crumb.label ?? '',
-          item: crumb.url
-            ? `${baseUrl}${crumb.url}`
-            : baseUrl,
-        }),
-      )
-      const jsonLd = {
-        '@context': 'https://schema.org',
-        '@type': 'BreadcrumbList',
-        itemListElement,
+      try {
+        const id = args.id as string
+        const baseUrl = process.env.NEXT_PUBLIC_SERVER_URL ?? ''
+        const page = await req.payload.findByID({ collection: 'pages', id }) as Record<string, unknown>
+        const breadcrumbs = Array.isArray(page.breadcrumbs) ? page.breadcrumbs : []
+        const itemListElement = breadcrumbs.map(
+          (crumb: Record<string, unknown>, index: number) => ({
+            '@type': 'ListItem',
+            position: index + 1,
+            name: crumb.label ?? '',
+            item: crumb.url
+              ? `${baseUrl}${crumb.url}`
+              : baseUrl,
+          }),
+        )
+        const jsonLd = {
+          '@context': 'https://schema.org',
+          '@type': 'BreadcrumbList',
+          itemListElement,
+        }
+        return text(JSON.stringify(jsonLd, null, 2))
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err)
+        return text(`Error: ${message}`)
       }
-      return text(JSON.stringify(jsonLd, null, 2))
     },
   },
   {
@@ -185,21 +205,26 @@ export const seoIndexingTools = [
     description: 'Generate hreflang link tags for a page across supported locales.',
     parameters: { id: z.string() },
     handler: async (args: Record<string, unknown>, req: PayloadRequest, _extra: unknown) => {
-      const id = args.id as string
-      const baseUrl = process.env.NEXT_PUBLIC_SERVER_URL ?? ''
-      const locales = ['en', 'es', 'fr']
-      const page = await req.payload.findByID({ collection: 'pages', id }) as Record<string, unknown>
-      const slug = typeof page.slug === 'string' ? page.slug : ''
-      const tags = locales
-        .map((locale) => {
-          const href =
-            slug === 'home' || slug === ''
-              ? `${baseUrl}/${locale}`
-              : `${baseUrl}/${locale}/${slug}`
-          return `<link rel="alternate" hreflang="${locale}" href="${href}" />`
-        })
-        .join('\n')
-      return text(tags)
+      try {
+        const id = args.id as string
+        const baseUrl = process.env.NEXT_PUBLIC_SERVER_URL ?? ''
+        const locales = ['en', 'es', 'fr']
+        const page = await req.payload.findByID({ collection: 'pages', id }) as Record<string, unknown>
+        const slug = typeof page.slug === 'string' ? page.slug : ''
+        const tags = locales
+          .map((locale) => {
+            const href =
+              slug === 'home' || slug === ''
+                ? `${baseUrl}/${locale}`
+                : `${baseUrl}/${locale}/${slug}`
+            return `<link rel="alternate" hreflang="${locale}" href="${href}" />`
+          })
+          .join('\n')
+        return text(tags)
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err)
+        return text(`Error: ${message}`)
+      }
     },
   },
   {

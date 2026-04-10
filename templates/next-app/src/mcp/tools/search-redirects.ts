@@ -38,28 +38,53 @@ export const searchRedirectsTools = [
         )
       }
 
-      const pages = await req.payload.find({
-        collection: 'pages',
-        where: { _status: { equals: 'published' } },
-        limit: 1000,
-      })
+      let pages: Awaited<ReturnType<typeof req.payload.find>>
+      try {
+        pages = await req.payload.find({
+          collection: 'pages',
+          where: { _status: { equals: 'published' } },
+          limit: 1000,
+        })
+      } catch (err) {
+        return text(
+          JSON.stringify(
+            { success: false, error: 'Failed to find published pages', details: err instanceof Error ? err.message : String(err) },
+            null,
+            2,
+          ),
+        )
+      }
+
+      const truncationWarning = pages.totalDocs > pages.docs.length
+        ? `\nWarning: ${pages.totalDocs} total pages, showing first ${pages.docs.length}.`
+        : ''
 
       let reindexed = 0
       const reindexErrors: Array<{ pageId: unknown; error: string }> = []
 
-      for (const page of pages.docs) {
-        try {
-          await req.payload.create({
-            collection: 'search',
-            data: {
-              doc: { value: page.id, relationTo: 'pages' },
-              priority: 10,
-            },
-          })
-          reindexed++
-        } catch (err) {
-          reindexErrors.push({ pageId: page.id, error: err instanceof Error ? err.message : String(err) })
+      try {
+        for (const page of pages.docs) {
+          try {
+            await req.payload.create({
+              collection: 'search',
+              data: {
+                doc: { value: page.id, relationTo: 'pages' },
+                priority: 10,
+              },
+            })
+            reindexed++
+          } catch (err) {
+            reindexErrors.push({ pageId: page.id, error: err instanceof Error ? err.message : String(err) })
+          }
         }
+      } catch (err) {
+        return text(
+          JSON.stringify(
+            { success: false, error: 'Reindex phase failed', details: err instanceof Error ? err.message : String(err) },
+            null,
+            2,
+          ),
+        )
       }
 
       return text(
@@ -73,7 +98,7 @@ export const searchRedirectsTools = [
           },
           null,
           2,
-        ),
+        ) + truncationWarning,
       )
     },
   },

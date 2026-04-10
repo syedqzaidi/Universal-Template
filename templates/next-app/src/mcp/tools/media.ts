@@ -150,8 +150,8 @@ export const mediaTools = [
             }
           }
         }
-      } catch {
-        // pages collection may not exist or have a different name; continue
+      } catch (err) {
+        unusedWarnings.push(`Warning: failed to scan pages collection (${err instanceof Error ? err.message : String(err)}); some media references may be missed.`)
       }
 
       // Also check posts collection if it exists
@@ -177,8 +177,8 @@ export const mediaTools = [
             }
           }
         }
-      } catch {
-        // posts collection may not exist; continue
+      } catch (err) {
+        unusedWarnings.push(`Warning: failed to scan posts collection (${err instanceof Error ? err.message : String(err)}); some media references may be missed.`)
       }
 
       const unused = allMedia.filter((m) => !referencedIds.has(m.id))

@@ -40,20 +40,25 @@ export const contentQualityTools = [
     description: 'Get word count, reading time, and heading count for a page by ID.',
     parameters: { id: z.string() },
     handler: async (args: Record<string, unknown>, req: PayloadRequest, _extra: unknown) => {
-      const id = args.id as string
-      const page = await req.payload.findByID({ collection: 'pages', id }) as Record<string, unknown>
-      const content = page.content
-      const wordCount = estimateWordCount(content)
-      const readingTime = Math.ceil(wordCount / 200)
-      const headingCount = countHeadings(content)
-      const stats = {
-        id,
-        title: page.title ?? null,
-        wordCount,
-        readingTime,
-        headingCount,
+      try {
+        const id = args.id as string
+        const page = await req.payload.findByID({ collection: 'pages', id }) as Record<string, unknown>
+        const content = page.content
+        const wordCount = estimateWordCount(content)
+        const readingTime = Math.ceil(wordCount / 200)
+        const headingCount = countHeadings(content)
+        const stats = {
+          id,
+          title: page.title ?? null,
+          wordCount,
+          readingTime,
+          headingCount,
+        }
+        return text(JSON.stringify(stats, null, 2))
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err)
+        return text(`Error: ${message}`)
       }
-      return text(JSON.stringify(stats, null, 2))
     },
   },
   {
@@ -61,42 +66,50 @@ export const contentQualityTools = [
     description: 'Find published pages that have no parent and are not referenced as a parent by any other page.',
     parameters: {},
     handler: async (args: Record<string, unknown>, req: PayloadRequest, _extra: unknown) => {
-      const result = await req.payload.find({
-        collection: 'pages',
-        where: { _status: { equals: 'published' } },
-        limit: 500,
-        depth: 1,
-      })
-      const pages = result.docs as Record<string, unknown>[]
-
-      // Collect all parent IDs referenced by any page
-      const referencedAsParent = new Set<string>()
-      for (const page of pages) {
-        const parent = page.parent
-        if (parent) {
-          const parentId = typeof parent === 'object' && parent !== null
-            ? String((parent as Record<string, unknown>).id ?? parent)
-            : String(parent)
-          referencedAsParent.add(parentId)
-        }
-      }
-
-      // Exclude common root pages that are intentionally parentless
-      const rootSlugs = new Set(['home', '', 'index'])
-
-      const orphans = pages
-        .filter((page) => {
-          const parent = page.parent
-          const hasNoParent = parent === null || parent === undefined
-          const id = String(page.id)
-          const slug = typeof page.slug === 'string' ? page.slug : ''
-          const isNotReferencedAsParent = !referencedAsParent.has(id)
-          const isNotRootPage = !rootSlugs.has(slug)
-          return hasNoParent && isNotReferencedAsParent && isNotRootPage
+      try {
+        const result = await req.payload.find({
+          collection: 'pages',
+          where: { _status: { equals: 'published' } },
+          limit: 500,
+          depth: 1,
         })
-        .map((page) => ({ id: page.id, title: page.title, slug: page.slug }))
+        const pages = result.docs as Record<string, unknown>[]
+        const warning = result.totalDocs > result.docs.length
+          ? `\nWarning: ${result.totalDocs} total items, showing first ${result.docs.length}.`
+          : ''
 
-      return text(JSON.stringify(orphans, null, 2))
+        // Collect all parent IDs referenced by any page
+        const referencedAsParent = new Set<string>()
+        for (const page of pages) {
+          const parent = page.parent
+          if (parent) {
+            const parentId = typeof parent === 'object' && parent !== null
+              ? String((parent as Record<string, unknown>).id ?? parent)
+              : String(parent)
+            referencedAsParent.add(parentId)
+          }
+        }
+
+        // Exclude common root pages that are intentionally parentless
+        const rootSlugs = new Set(['home', '', 'index'])
+
+        const orphans = pages
+          .filter((page) => {
+            const parent = page.parent
+            const hasNoParent = parent === null || parent === undefined
+            const id = String(page.id)
+            const slug = typeof page.slug === 'string' ? page.slug : ''
+            const isNotReferencedAsParent = !referencedAsParent.has(id)
+            const isNotRootPage = !rootSlugs.has(slug)
+            return hasNoParent && isNotReferencedAsParent && isNotRootPage
+          })
+          .map((page) => ({ id: page.id, title: page.title, slug: page.slug }))
+
+        return text(JSON.stringify(orphans, null, 2) + warning)
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err)
+        return text(`Error: ${message}`)
+      }
     },
   },
   {
@@ -180,58 +193,68 @@ export const contentQualityTools = [
     description: 'Aggregate site health: counts of pages missing SEO fields, thin content, and orphan pages.',
     parameters: {},
     handler: async (args: Record<string, unknown>, req: PayloadRequest, _extra: unknown) => {
-      const result = await req.payload.find({
-        collection: 'pages',
-        where: { _status: { equals: 'published' } },
-        limit: 500,
-        depth: 1,
-      })
-      const pages = result.docs as Record<string, unknown>[]
+      try {
+        const result = await req.payload.find({
+          collection: 'pages',
+          where: { _status: { equals: 'published' } },
+          limit: 500,
+          depth: 1,
+        })
+        const pages = result.docs as Record<string, unknown>[]
+        const warning = result.totalDocs > result.docs.length
+          ? `\nWarning: ${result.totalDocs} total items, showing first ${result.docs.length}.`
+          : ''
 
-      const MIN_WORDS = 300
+        const MIN_WORDS = 300
 
-      // Count missing SEO
-      let missingSeo = 0
-      for (const page of pages) {
-        const meta = page.meta as Record<string, unknown> | undefined
-        const missingTitle = !meta?.title || (meta.title as string).trim() === ''
-        const missingDesc = !meta?.description || (meta.description as string).trim() === ''
-        if (missingTitle || missingDesc) missingSeo++
-      }
-
-      // Count thin content
-      let thinCount = 0
-      for (const page of pages) {
-        const wc = estimateWordCount(page.content)
-        if (wc < MIN_WORDS) thinCount++
-      }
-
-      // Count orphans
-      const referencedAsParent = new Set<string>()
-      for (const page of pages) {
-        const parent = page.parent
-        if (parent) {
-          const parentId = typeof parent === 'object' && parent !== null
-            ? String((parent as Record<string, unknown>).id ?? parent)
-            : String(parent)
-          referencedAsParent.add(parentId)
+        // Count missing SEO
+        let missingSeo = 0
+        for (const page of pages) {
+          const meta = page.meta as Record<string, unknown> | undefined
+          const missingTitle = !meta?.title || (meta.title as string).trim() === ''
+          const missingDesc = !meta?.description || (meta.description as string).trim() === ''
+          if (missingTitle || missingDesc) missingSeo++
         }
-      }
-      let orphanCount = 0
-      for (const page of pages) {
-        const hasNoParent = page.parent === null || page.parent === undefined
-        const id = String(page.id)
-        if (hasNoParent && !referencedAsParent.has(id)) orphanCount++
-      }
 
-      const summary = {
-        totalPublishedPages: pages.length,
-        pagesMissingSeoFields: missingSeo,
-        thinContentPages: thinCount,
-        orphanPages: orphanCount,
-      }
+        // Count thin content
+        let thinCount = 0
+        for (const page of pages) {
+          const wc = estimateWordCount(page.content)
+          if (wc < MIN_WORDS) thinCount++
+        }
 
-      return text(JSON.stringify(summary, null, 2))
+        // Count orphans
+        const referencedAsParent = new Set<string>()
+        for (const page of pages) {
+          const parent = page.parent
+          if (parent) {
+            const parentId = typeof parent === 'object' && parent !== null
+              ? String((parent as Record<string, unknown>).id ?? parent)
+              : String(parent)
+            referencedAsParent.add(parentId)
+          }
+        }
+        const rootSlugs = new Set(['home', '', 'index'])
+        let orphanCount = 0
+        for (const page of pages) {
+          const hasNoParent = page.parent === null || page.parent === undefined
+          const id = String(page.id)
+          const slug = typeof page.slug === 'string' ? page.slug : ''
+          if (hasNoParent && !referencedAsParent.has(id) && !rootSlugs.has(slug)) orphanCount++
+        }
+
+        const summary = {
+          totalPublishedPages: pages.length,
+          pagesMissingSeoFields: missingSeo,
+          thinContentPages: thinCount,
+          orphanPages: orphanCount,
+        }
+
+        return text(JSON.stringify(summary, null, 2) + warning)
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err)
+        return text(`Error: ${message}`)
+      }
     },
   },
   {
@@ -239,28 +262,36 @@ export const contentQualityTools = [
     description: 'List all pages (any status) with title, slug, status, word count estimate, locale, and SEO field presence.',
     parameters: {},
     handler: async (args: Record<string, unknown>, req: PayloadRequest, _extra: unknown) => {
-      const result = await req.payload.find({
-        collection: 'pages',
-        limit: 500,
-        depth: 0,
-      })
-      const pages = result.docs as Record<string, unknown>[]
+      try {
+        const result = await req.payload.find({
+          collection: 'pages',
+          limit: 500,
+          depth: 0,
+        })
+        const pages = result.docs as Record<string, unknown>[]
+        const warning = result.totalDocs > result.docs.length
+          ? `\nWarning: ${result.totalDocs} total items, showing first ${result.docs.length}.`
+          : ''
 
-      const inventory = pages.map((page) => {
-        const meta = page.meta as Record<string, unknown> | undefined
-        return {
-          id: page.id,
-          title: page.title ?? null,
-          slug: page.slug ?? null,
-          status: page._status ?? null,
-          wordCount: estimateWordCount(page.content),
-          locale: page.locale ?? null,
-          hasMetaTitle: !!(meta?.title && (meta.title as string).trim() !== ''),
-          hasMetaDescription: !!(meta?.description && (meta.description as string).trim() !== ''),
-        }
-      })
+        const inventory = pages.map((page) => {
+          const meta = page.meta as Record<string, unknown> | undefined
+          return {
+            id: page.id,
+            title: page.title ?? null,
+            slug: page.slug ?? null,
+            status: page._status ?? null,
+            wordCount: estimateWordCount(page.content),
+            locale: page.locale ?? null,
+            hasMetaTitle: !!(meta?.title && (meta.title as string).trim() !== ''),
+            hasMetaDescription: !!(meta?.description && (meta.description as string).trim() !== ''),
+          }
+        })
 
-      return text(JSON.stringify(inventory, null, 2))
+        return text(JSON.stringify(inventory, null, 2) + warning)
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err)
+        return text(`Error: ${message}`)
+      }
     },
   },
 ]

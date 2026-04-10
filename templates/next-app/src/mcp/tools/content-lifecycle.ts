@@ -101,7 +101,7 @@ export const contentLifecycleTools = [
   {
     name: 'bulk_publish',
     description: 'Publish multiple pages by their IDs.',
-    parameters: { ids: z.array(z.string()) },
+    parameters: { ids: z.array(z.string()).max(100) },
     handler: async (args: Record<string, unknown>, req: PayloadRequest, _extra: unknown) => {
       const ids = args.ids as string[]
       const succeeded: string[] = []
@@ -124,7 +124,7 @@ export const contentLifecycleTools = [
   {
     name: 'bulk_unpublish',
     description: 'Unpublish multiple pages by their IDs.',
-    parameters: { ids: z.array(z.string()) },
+    parameters: { ids: z.array(z.string()).max(100) },
     handler: async (args: Record<string, unknown>, req: PayloadRequest, _extra: unknown) => {
       const ids = args.ids as string[]
       const succeeded: string[] = []
