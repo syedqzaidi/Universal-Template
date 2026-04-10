@@ -7,7 +7,7 @@ export const mediaTools = [
   {
     name: 'find_missing_alt_text',
     description: 'Find all media items that are missing alt text',
-    parameters: {} as z.ZodRawShape,
+    parameters: {},
     handler: async (_args: Record<string, unknown>, req: PayloadRequest, _extra: unknown) => {
       // Try querying with where clause for missing alt
       let missingAlt: Array<{ id: string; filename?: string; url?: string }> = []
@@ -101,7 +101,7 @@ export const mediaTools = [
   {
     name: 'find_unused_media',
     description: 'Find media items that are not referenced by any page',
-    parameters: {} as z.ZodRawShape,
+    parameters: {},
     handler: async (_args: Record<string, unknown>, req: PayloadRequest, _extra: unknown) => {
       // Get all media IDs (up to 100)
       let allMedia: Array<{ id: string; filename?: string }> = []

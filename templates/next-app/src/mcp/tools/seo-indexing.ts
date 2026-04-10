@@ -139,15 +139,17 @@ export const seoIndexingTools = [
       const meta = (page.meta ?? {}) as Record<string, unknown>
       const slug = typeof page.slug === 'string' ? page.slug : ''
       const pageUrl = slug === 'home' || slug === '' ? baseUrl : `${baseUrl}/${slug}`
-      const jsonLd = {
+      const jsonLd: Record<string, unknown> = {
         '@context': 'https://schema.org',
         '@type': 'WebPage',
         name: meta.title ?? page.title ?? '',
         description: meta.description ?? '',
         url: pageUrl,
-        datePublished: page.publishedAt ?? page.createdAt ?? '',
-        dateModified: page.updatedAt ?? '',
       }
+      const datePublished = page.publishedAt ?? page.createdAt
+      const dateModified = page.updatedAt
+      if (datePublished) jsonLd.datePublished = datePublished
+      if (dateModified) jsonLd.dateModified = dateModified
       return text(JSON.stringify(jsonLd, null, 2))
     },
   },

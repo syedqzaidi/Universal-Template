@@ -117,9 +117,11 @@ export const croTools = [
         const slug = typeof page.slug === 'string' ? page.slug : ''
 
         // Count how many other page slugs appear in this page's content
+        // Skip slugs shorter than 3 chars to avoid false positives (e.g., "en", "fr", "a")
         const referencedSlugs = allSlugs.filter((s) => {
           if (s === slug) return false // skip self-reference
-          return contentStr.includes(`/${s}`) || contentStr.includes(`"${s}"`) || contentStr.includes(`'${s}'`)
+          if (s.length < 3) return false // skip short slugs prone to false matches
+          return contentStr.includes(`/${s}`)
         })
 
         return {

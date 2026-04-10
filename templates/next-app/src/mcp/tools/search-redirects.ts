@@ -7,7 +7,7 @@ export const searchRedirectsTools = [
   {
     name: 'reindex_search',
     description: 'Delete all documents in the search collection and reindex all published pages.',
-    parameters: {} as Record<string, never>,
+    parameters: {},
     handler: async (_args: Record<string, unknown>, req: PayloadRequest, _extra: unknown) => {
       // Fix #1: Payload 3 delete requires a single id — find all docs first, then delete each by ID.
       let deletedCount = 0

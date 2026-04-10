@@ -22,10 +22,11 @@ export const mcpConfig: PluginMCPServerConfig = {
       enabled: { find: true, create: false, update: false, delete: false },
     },
   },
-  // Cast tools/prompts to satisfy Zod 3 vs Zod 4 type mismatch
-  // (MCP plugin uses Zod 3 internally, project uses Zod 4)
+  // Type cast: project uses Zod 4, MCP plugin types reference Zod 3.
+  // At runtime this is safe — the MCP SDK's zod-compat layer (normalizeObjectSchema)
+  // detects both Zod 3 (_def) and Zod 4 (_zod) schemas and handles them correctly.
   mcp: {
-    tools: allTools as PluginMCPServerConfig['mcp'] extends { tools?: infer T } ? T : never,
-    prompts: allPrompts as PluginMCPServerConfig['mcp'] extends { prompts?: infer T } ? T : never,
+    tools: allTools as any,
+    prompts: allPrompts as any,
   },
 }

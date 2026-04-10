@@ -81,13 +81,18 @@ export const contentQualityTools = [
         }
       }
 
+      // Exclude common root pages that are intentionally parentless
+      const rootSlugs = new Set(['home', '', 'index'])
+
       const orphans = pages
         .filter((page) => {
           const parent = page.parent
           const hasNoParent = parent === null || parent === undefined
           const id = String(page.id)
+          const slug = typeof page.slug === 'string' ? page.slug : ''
           const isNotReferencedAsParent = !referencedAsParent.has(id)
-          return hasNoParent && isNotReferencedAsParent
+          const isNotRootPage = !rootSlugs.has(slug)
+          return hasNoParent && isNotReferencedAsParent && isNotRootPage
         })
         .map((page) => ({ id: page.id, title: page.title, slug: page.slug }))
 

@@ -9,7 +9,7 @@ export const i18nTools = [
   {
     name: 'translation_coverage',
     description: 'Report translation coverage for all locales. For each locale, counts published pages with vs without a translated title.',
-    parameters: {} as Record<string, never>,
+    parameters: {},
     handler: async (_args: Record<string, unknown>, req: PayloadRequest, _extra: unknown) => {
       const report: Record<string, { total: number; translated: number }> = {}
 

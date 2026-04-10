@@ -10,7 +10,7 @@ export const formsTools = [
     parameters: {
       startDate: z.string().optional(),
       endDate: z.string().optional(),
-    } as z.ZodRawShape,
+    },
     handler: async (args: Record<string, unknown>, req: PayloadRequest, _extra: unknown) => {
       const startDate = args.startDate as string | undefined
       const endDate = args.endDate as string | undefined
@@ -68,7 +68,7 @@ export const formsTools = [
     description: 'Export all submissions for a given form ID as JSON',
     parameters: {
       formId: z.string(),
-    } as z.ZodRawShape,
+    },
     handler: async (args: Record<string, unknown>, req: PayloadRequest, _extra: unknown) => {
       const formId = args.formId as string
 
