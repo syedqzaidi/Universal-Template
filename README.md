@@ -650,6 +650,70 @@ The `.mcp.json` file includes 10 pre-configured AI tool servers for use with AI 
 
 Servers that need authentication (Supabase, Vercel, PostHog, Sentry, Resend, Twenty) will ask for credentials on first use.
 
+### Custom MCP Tools (Payload CMS Plugin)
+
+Beyond the external MCP servers above, the Next.js template includes **61 custom MCP tools** and **8 prompts** built into Payload CMS via `@payloadcms/plugin-mcp`. These tools let an AI agent manage the entire CMS through conversation.
+
+#### Generic CMS Tools (33 tools)
+
+| Category | Tools | Purpose |
+|----------|-------|---------|
+| Content Lifecycle | 7 | Publish, unpublish, duplicate, schedule, archive pages |
+| SEO Indexing | 10 | Sitemap generation, Google indexing, JSON-LD, hreflang, robots.txt |
+| Content Quality | 6 | Word count, readability, orphan pages, thin content, broken links, site health |
+| CRO | 3 | Conversion rate optimization analysis |
+| i18n | 2 | Translation management |
+| Search & Redirects | 3 | Redirect management and search indexing |
+| Media | 2 | Image and file management |
+| Forms | 2 | Form submission stats and exports |
+
+#### Programmatic SEO Tools (28 tools)
+
+These automate the pSEO pipeline: seeding data → generating cross-product pages → enriching with AI → validating quality → auditing SEO → managing content lifecycle.
+
+| Category | Tools | File | Purpose |
+|----------|-------|------|---------|
+| Data Seeding | 5 | `pseo-seeding.ts` | Bulk-create services, locations, FAQs, testimonials, team members |
+| Page Generation | 3 | `pseo-page-generation.ts` | Cross-product service×location pages, AI enrichment, content updates |
+| Keywords | 2 | `pseo-keywords.ts` | Keyword formula generation, placement validation |
+| Quality | 4 | `pseo-quality.ts` | Content uniqueness (trigram Jaccard), quality scoring, SEO audit, heading structure |
+| Architecture | 4 | `pseo-architecture.ts` | Internal linking, orphan detection, slug validation, canonical consistency |
+| Lifecycle | 4 | `pseo-lifecycle.ts` | Stale page detection, pruning candidates, keyword cannibalization, redirects |
+| Local SEO | 4 | `pseo-local-seo.ts` | NAP consistency, testimonial coverage, image alt/filename validation |
+| Launch | 2 | `pseo-launch.ts` | Pre-launch checklist, collection stats dashboard |
+
+#### MCP Prompts (8 prompts)
+
+| Prompt | Purpose |
+|--------|---------|
+| `brand_voice` | Professional agency tone guidelines |
+| `seo_content_standards` | Meta title/description and keyword placement rules |
+| `landing_page_structure` | Hero → problem → solution → CTA conversion flow |
+| `image_guidelines` | Aspect ratios, alt text rules, format preferences |
+| `translation_guidelines` | SEO-preserving translation with cultural adaptation |
+| `pseo_page_template` | Service-page content templates (headlines, intros, CTAs) |
+| `pseo_enrichment_prompt` | AI enrichment prompt for upgrading template pages |
+| `pseo_launch_readiness` | Pre-launch quality thresholds and readiness checklist |
+
+#### Collection Permissions (10 collections)
+
+The MCP plugin exposes these CMS collections with controlled permissions:
+
+| Collection | Find | Create | Update | Delete |
+|------------|------|--------|--------|--------|
+| pages | ✓ | ✓ | ✓ | ✓ |
+| media | ✓ | ✓ | ✓ | — |
+| users | ✓ | — | — | — |
+| services | ✓ | ✓ | ✓ | — |
+| locations | ✓ | ✓ | ✓ | — |
+| service-pages | ✓ | ✓ | ✓ | ✓ |
+| blog-posts | ✓ | ✓ | ✓ | — |
+| faqs | ✓ | ✓ | ✓ | ✓ |
+| testimonials | ✓ | ✓ | ✓ | — |
+| team-members | ✓ | ✓ | ✓ | — |
+
+See [`templates/next-app/src/mcp/README.md`](templates/next-app/src/mcp/README.md) for full tool reference and usage examples.
+
 ---
 
 ## Contributing
