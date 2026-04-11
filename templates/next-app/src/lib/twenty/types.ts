@@ -24,7 +24,7 @@ export interface Person {
   phones?: Phones
   city?: string
   jobTitle?: string
-  linkedinUrl?: string
+  linkedinLink?: { primaryLinkUrl: string; primaryLinkLabel: string }
   companyId?: string
   createdAt: string
   updatedAt: string
@@ -53,10 +53,15 @@ export interface Opportunity {
   updatedAt: string
 }
 
+export interface RichText {
+  blocknote?: string
+}
+
 export interface Note {
   id: string
   title?: string
-  body?: string
+  bodyV2?: RichText
+  position?: number
   createdAt: string
   updatedAt: string
 }
@@ -64,10 +69,11 @@ export interface Note {
 export interface Task {
   id: string
   title?: string
-  body?: string
+  bodyV2?: RichText
   status?: string
   dueAt?: string
   assigneeId?: string
+  position?: number
   createdAt: string
   updatedAt: string
 }

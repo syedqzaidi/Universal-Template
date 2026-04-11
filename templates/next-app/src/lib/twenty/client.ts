@@ -97,7 +97,7 @@ export class TwentyClient {
     let lastError: Error | undefined
 
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-      const response = await fetch(`${this.apiUrl}/api`, {
+      const response = await fetch(`${this.apiUrl}/graphql`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

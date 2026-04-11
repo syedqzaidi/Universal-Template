@@ -56,7 +56,7 @@ const DEFAULT_FIELDS: Record<string, string> = {
     phones { primaryPhoneNumber }
     city
     jobTitle
-    linkedinUrl
+    linkedinLink { primaryLinkUrl primaryLinkLabel }
     companyId
     createdAt
     updatedAt
@@ -85,17 +85,19 @@ const DEFAULT_FIELDS: Record<string, string> = {
   notes: `
     id
     title
-    body
+    bodyV2 { blocknote }
+    position
     createdAt
     updatedAt
   `,
   tasks: `
     id
     title
-    body
+    bodyV2 { blocknote }
     status
     dueAt
     assigneeId
+    position
     createdAt
     updatedAt
   `,

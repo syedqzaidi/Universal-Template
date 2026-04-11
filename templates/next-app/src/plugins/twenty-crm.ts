@@ -169,24 +169,34 @@ async function syncTarget(
       const noteInput: Record<string, unknown> = { ...mapped }
 
       if (target.bodyField) {
-        noteInput.body = doc[target.bodyField] ?? ''
+        const bodyText = String(doc[target.bodyField] ?? '')
+        noteInput.bodyV2 = { blocknote: JSON.stringify([{ type: 'paragraph', content: bodyText }]) }
       }
+
+      // Create the note first, then link via noteTargets if needed
+      const createdNote = await client.notes.create(noteInput as any)
+      log(`Created note ${createdNote.id}`)
 
       if (target.linkToPersonByEmail) {
         const email = doc[target.linkToPersonByEmail] as string | undefined
         if (email) {
           const person = await client.people.findByEmail(email)
           if (person) {
-            noteInput.pointOfContactId = person.id
-            log(`Linking note to person ${person.id} (${email})`)
-          } else {
-            log(`Person not found for email ${email} — creating unlinked note`)
+            // Link note to person via noteTargets
+            try {
+              await client.execute(
+                `mutation CreateNoteTarget($input: NoteTargetCreateInput!) {
+                  createNoteTarget(data: $input) { id }
+                }`,
+                { input: { noteId: createdNote.id, personId: person.id } },
+              )
+              log(`Linked note ${createdNote.id} to person ${person.id} (${email})`)
+            } catch (linkErr) {
+              log(`Note created but linking failed: ${(linkErr as Error).message}`)
+            }
           }
         }
       }
-
-      await client.notes.create(noteInput as any)
-      log('Created note')
       break
     }
   }
@@ -238,7 +248,7 @@ export function twentyCrmPlugin(config: TwentyCrmPluginConfig): Plugin {
 
               // Fire-and-forget: don't block the Payload response
               syncToTwenty(client, doc, syncConfig, strategy, log).catch(async (err) => {
-                logger.error(`[twenty-crm] Sync failed for ${collection.slug}:`, err)
+                logger.error(`[twenty-crm] Sync failed for ${collection.slug}: ${(err as Error)?.message || err}`)
                 try {
                   const Sentry = await import('@sentry/nextjs')
                   Sentry.captureException(err, {
