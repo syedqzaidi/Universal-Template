@@ -14,6 +14,20 @@ export const Users: CollectionConfig = {
     update: isAdminOrSelf,
     delete: isAdmin,
   },
+  hooks: {
+    beforeChange: [
+      async ({ data, req, operation }) => {
+        // First user created gets admin role automatically
+        if (operation === 'create') {
+          const { totalDocs } = await req.payload.count({ collection: 'users' })
+          if (totalDocs === 0) {
+            data.role = 'admin'
+          }
+        }
+        return data
+      },
+    ],
+  },
   fields: [
     { name: 'name', type: 'text' },
     {
