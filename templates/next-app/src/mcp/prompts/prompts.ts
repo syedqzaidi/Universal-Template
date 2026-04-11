@@ -582,4 +582,209 @@ Before approving a translation for publishing:
       return msg('assistant', text)
     },
   },
+
+  {
+    name: 'pseo_page_template',
+    title: 'pSEO Page Content Template',
+    description:
+      'Content template system for generating service-page copy with headline, intro, localContent, and CTA variants',
+    argsSchema: {
+      serviceName: z.string(),
+      city: z.string(),
+      state: z.string(),
+    },
+    handler: (args: Record<string, unknown>, _req: PayloadRequest, _extra: unknown) => {
+      const svc = args['serviceName'] as string
+      const city = args['city'] as string
+      const state = args['state'] as string
+
+      const text = `# pSEO Page Content Template
+
+## Service: ${svc}
+## Location: ${city}, ${state}
+
+---
+
+## Headline Variants (H1)
+Pick one. Each must include the primary keyword "${svc} in ${city}" naturally.
+
+1. "Professional ${svc} in ${city}, ${state}"
+2. "Trusted ${svc} Services in ${city}"
+3. "Expert ${svc} for ${city} Residents"
+4. "${city}'s Top-Rated ${svc} Provider"
+5. "Reliable ${svc} in ${city}, ${state} — Get a Free Quote"
+
+---
+
+## Introduction Variants (150-200 words each)
+Each must mention "${svc} in ${city}" within the first 100 words.
+
+### Variant A — Problem-Solution
+"Finding reliable ${svc} in ${city} shouldn't be stressful. Whether you're dealing with [common problem 1] or need [common need], our team provides [key benefit]. Serving ${city} and surrounding ${state} communities, we bring [X] years of experience to every project. [Add local detail about ${city} — neighborhood, landmark, or community reference]. Contact us today for a free consultation."
+
+### Variant B — Authority-Led
+"As ${city}'s trusted ${svc} provider, we've helped [hundreds/thousands] of homeowners and businesses across ${state}. Our licensed professionals specialize in [service aspect 1], [service aspect 2], and [service aspect 3]. [Local detail about serving the ${city} area]. We're committed to transparent pricing and guaranteed satisfaction."
+
+### Variant C — Benefit-Forward
+"Get professional ${svc} in ${city}, ${state} — fast, affordable, and backed by our satisfaction guarantee. We understand that ${city} [local context — climate, building types, common issues]. That's why we offer [specific solution]. From [service type A] to [service type B], we handle it all."
+
+---
+
+## Local Content Variants (100-150 words)
+
+### Variant 1 — Area Expertise
+"We proudly serve ${city} and the greater ${state} area, including [nearby cities/neighborhoods]. Our team understands the unique [challenges/needs] of ${city} properties, from [local factor 1] to [local factor 2]. Whether you're in [neighborhood 1] or [neighborhood 2], we're just a call away."
+
+### Variant 2 — Community Connection
+"${city} is more than our service area — it's our community. We've been providing ${svc} to local homes and businesses for [X] years, building relationships based on quality work and honest pricing. As a locally operated company, we take pride in keeping ${city} [relevant outcome]."
+
+---
+
+## CTA Variants
+
+1. "Get Your Free ${svc} Quote in ${city}" (primary — form submission)
+2. "Call Now for ${svc} in ${city}" (phone-oriented)
+3. "Schedule Your ${svc} Consultation Today" (appointment-oriented)`
+
+      return msg('assistant', text)
+    },
+  },
+
+  {
+    name: 'pseo_enrichment_prompt',
+    title: 'pSEO AI Enrichment Prompt',
+    description:
+      'AI enrichment prompt template for improving template-generated service-pages with unique, locally relevant content',
+    argsSchema: {
+      serviceName: z.string(),
+      city: z.string(),
+      stateCode: z.string(),
+    },
+    handler: (args: Record<string, unknown>, _req: PayloadRequest, _extra: unknown) => {
+      const svc = args['serviceName'] as string
+      const city = args['city'] as string
+      const sc = args['stateCode'] as string
+
+      const text = `# AI Enrichment Prompt for ${svc} in ${city}, ${sc}
+
+Use this prompt to generate unique content for the service-page. Feed it to an AI model along with any available context about the service and location.
+
+---
+
+## Enrichment Prompt
+
+You are writing content for a local service page about "${svc} in ${city}, ${sc}".
+
+**Requirements:**
+1. Write a unique 150-200 word introduction that:
+   - Mentions "${svc} in ${city}" within the first sentence
+   - References at least one specific detail about ${city} (geography, climate, demographics, or local landmarks)
+   - Explains why ${city} residents specifically need this service
+   - Includes a clear value proposition
+   - Ends with a soft call-to-action
+
+2. Write a 100-150 word "Local Expertise" section that:
+   - Names 2-3 nearby cities or neighborhoods served
+   - Mentions a local factor relevant to this service (e.g., climate, building codes, common property types)
+   - Establishes credibility specific to the ${city} market
+
+**Constraints:**
+- Do NOT use generic filler phrases ("in today's world", "when it comes to", "look no further")
+- Do NOT repeat the same sentence structure more than twice
+- Maintain a professional but approachable tone
+- Include the primary keyword "${svc} in ${city}" exactly 2-3 times across both sections
+- Ensure Flesch-Kincaid reading ease > 60
+
+**Output Format:**
+Return JSON: { "introduction": "...", "localContent": "...", "contentSource": "ai-enriched", "contentQualityScore": 75 }`
+
+      return msg('assistant', text)
+    },
+  },
+
+  {
+    name: 'pseo_launch_readiness',
+    title: 'pSEO Launch Readiness Assessment',
+    description:
+      'Pre-launch quality thresholds and readiness criteria for programmatic SEO sites',
+    argsSchema: {
+      pageCount: z.string().optional(),
+    },
+    handler: (args: Record<string, unknown>, _req: PayloadRequest, _extra: unknown) => {
+      const pageCount = args['pageCount'] as string | undefined
+      const pageNote = pageCount ? `\n**Target page count:** ${pageCount}\n` : ''
+
+      const text = `# pSEO Launch Readiness Assessment
+${pageNote}
+## What "Ready to Launch" Looks Like
+
+A programmatic SEO site is ready for launch when it meets ALL of the following thresholds. Use the \`run_prelaunch_checklist\` tool to validate these automatically.
+
+---
+
+## Critical Requirements (Must Pass)
+
+### CMS Data
+- [ ] ≥1 published service exists
+- [ ] ≥1 published location exists
+- [ ] Service-pages generated for all service×location combinations
+- [ ] ≥3 FAQs per service (for FAQ schema markup)
+- [ ] ≥2 testimonials per service×location combo (for social proof)
+
+### Content Quality
+- [ ] **Zero** pages with contentQualityScore < 30 (deindex risk)
+- [ ] **<20%** of pages are template-only (contentSource: 'template')
+- [ ] Average quality score across all pages ≥ 60
+- [ ] No pages with empty introduction AND empty localContent
+- [ ] All pages have ≥300 words of indexable content
+
+### SEO Completeness
+- [ ] **100%** of pages have seoTitle (≤60 chars)
+- [ ] **100%** of pages have seoDescription (≤160 chars)
+- [ ] **Zero** duplicate seoTitle values
+- [ ] **Zero** duplicate seoDescription values
+- [ ] All slugs pass validation (lowercase, hyphens, ≤60 chars/segment)
+- [ ] Primary keyword present in H1 of every page
+
+### Internal Linking
+- [ ] **Zero** orphan pages (every page has ≥3 inbound links)
+- [ ] Every service-page links to its pillar service page
+- [ ] Cross-service links present for same-location pages
+- [ ] Sibling links present for same-service pages
+
+### Technical
+- [ ] Canonical URLs configured correctly (absolute, HTTPS, no trailing slash)
+- [ ] XML sitemap includes all published pages
+- [ ] robots.txt allows crawling of all published pages
+- [ ] No redirect chains (all redirects are direct 301s)
+
+---
+
+## Warning Thresholds (Should Fix Before Launch)
+
+| Metric | Warning Level | Action |
+|--------|--------------|--------|
+| Template-only pages | >10% | Run \`enrich_service_pages\` |
+| Average quality score | <70 | Prioritize enrichment |
+| Content uniqueness | Jaccard >0.4 for any pair | Rewrite flagged pages |
+| Keyword stuffing | >8 occurrences on any page | Edit meta fields |
+| Missing testimonials | Any combo with <2 | Run \`seed_testimonials\` |
+| Stale content | Any page >60 days old | Schedule content refresh |
+
+---
+
+## Launch Sequence
+
+1. Run \`list_collection_stats\` — verify all collections populated
+2. Run \`run_prelaunch_checklist\` — check all categories pass
+3. Run \`validate_content_uniqueness\` — ensure no near-duplicates
+4. Run \`audit_canonical_consistency\` — verify canonical URLs
+5. Run \`audit_slugs\` — validate all URL structures
+6. Fix any failing checks
+7. Re-run checklist until all pass
+8. Launch and monitor Google Search Console for crawl/index issues`
+
+      return msg('assistant', text)
+    },
+  },
 ]
