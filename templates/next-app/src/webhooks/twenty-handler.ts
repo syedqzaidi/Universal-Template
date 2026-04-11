@@ -11,7 +11,7 @@ export const twentyWebhookHandler: PayloadHandler = async (req) => {
     return Response.json({ error: 'Webhook secret not configured' }, { status: 500 })
   }
 
-  const rawBody = await req.text()
+  const rawBody = await req.text!()
   const signature = req.headers.get('x-twenty-webhook-signature') || ''
 
   if (!verifyTwentySignature(rawBody, signature, secret)) {

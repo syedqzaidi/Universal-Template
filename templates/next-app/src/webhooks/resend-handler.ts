@@ -7,7 +7,7 @@ export const resendWebhookHandler: PayloadHandler = async (req) => {
     return Response.json({ error: 'Webhook secret not configured' }, { status: 500 })
   }
 
-  const rawBody = await req.text()
+  const rawBody = await req.text!()
   const svixId = req.headers.get('svix-id') || ''
   const svixTimestamp = req.headers.get('svix-timestamp') || ''
   const svixSignature = req.headers.get('svix-signature') || ''
