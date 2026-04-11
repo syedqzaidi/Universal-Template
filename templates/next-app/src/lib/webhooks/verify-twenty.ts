@@ -9,10 +9,10 @@ export function verifyTwentySignature(
     .update(payload)
     .digest('hex')
 
-  if (signature.length !== expected.length) return false
-
   const sigBuffer = Buffer.from(signature)
   const expBuffer = Buffer.from(expected)
+
+  if (sigBuffer.length !== expBuffer.length) return false
 
   return timingSafeEqual(sigBuffer, expBuffer)
 }

@@ -18,13 +18,13 @@ export const twentyWebhookHandler: PayloadHandler = async (req) => {
     return Response.json({ error: 'Invalid signature' }, { status: 401 })
   }
 
-  const body = JSON.parse(rawBody) as {
-    event: string
-    data: Record<string, unknown>
-    timestamp?: string
+  let body: { event: string; data: Record<string, unknown>; timestamp?: string }
+  try {
+    body = JSON.parse(rawBody)
+  } catch {
+    return Response.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
-  // Respond immediately, process async
   const { event, data } = body
 
   // Fire-and-forget event processing

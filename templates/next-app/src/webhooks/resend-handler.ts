@@ -20,9 +20,11 @@ export const resendWebhookHandler: PayloadHandler = async (req) => {
     return Response.json({ error: 'Invalid signature' }, { status: 401 })
   }
 
-  const body = JSON.parse(rawBody) as {
-    type: string
-    data: Record<string, unknown>
+  let body: { type: string; data: Record<string, unknown> }
+  try {
+    body = JSON.parse(rawBody)
+  } catch {
+    return Response.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
   const { type, data } = body
