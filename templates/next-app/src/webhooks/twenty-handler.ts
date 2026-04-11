@@ -90,6 +90,8 @@ async function processEvent(
           { name: 'contact_id', value: twentyId },
           { name: 'email_type', value: 'welcome' },
         ],
+      }).catch((err) => {
+        req.payload.logger.error({ err, email }, '[twenty-webhook] Failed to send welcome email')
       })
       break
     }
@@ -133,35 +135,35 @@ async function processEvent(
       const firstName = (data.contactFirstName as string) || ''
       const dealName = (data.name as string) || (data.dealName as string) || 'your deal'
       const amount = (data.amount as number) || 0
-      const contactId = (data.id as string) || ''
+      // Use the person/contact ID (not the opportunity ID) so Resend tracking correlates
+      const contactId = (data.pointOfContactId as string) || (data.contactId as string) || ''
 
       if (!email) {
         req.payload.logger.warn({ data }, 'opportunity.stage_changed missing contactEmail')
         return
       }
 
-      // Send congratulations email
+      const emailTags = [{ name: 'contact_id', value: contactId }]
+
+      // Send congratulations and follow-up independently so one failure doesn't block the other
       await sendCrmEmail({
         to: email,
         subject: 'Congratulations on your new deal!',
         react: ClosedWonCongratulations({ firstName, dealName, amount }),
-        tags: [
-          { name: 'contact_id', value: contactId },
-          { name: 'email_type', value: 'closed_won' },
-        ],
+        tags: [...emailTags, { name: 'email_type', value: 'closed_won' }],
+      }).catch((err) => {
+        req.payload.logger.error({ err, email }, '[twenty-webhook] Failed to send closed-won email')
       })
 
-      // Schedule 7-day follow-up
       const sevenDays = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
       await sendCrmEmail({
         to: email,
         subject: 'Following up...',
         react: FollowUpReminder({ firstName, originalDealName: dealName }),
-        tags: [
-          { name: 'contact_id', value: contactId },
-          { name: 'email_type', value: 'follow_up' },
-        ],
+        tags: [...emailTags, { name: 'email_type', value: 'follow_up' }],
         scheduledAt: sevenDays,
+      }).catch((err) => {
+        req.payload.logger.error({ err, email }, '[twenty-webhook] Failed to schedule follow-up email')
       })
       break
     }

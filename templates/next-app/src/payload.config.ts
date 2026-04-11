@@ -49,7 +49,7 @@ export default buildConfig({
   collections: [Pages, Media, Users, ...(process.env.TWENTY_API_URL ? [Contacts] : [])],
   plugins: getPlugins(),
   endpoints: [
-    ...(process.env.TWENTY_WEBHOOK_SECRET ? [{
+    ...(process.env.TWENTY_API_URL && process.env.TWENTY_WEBHOOK_SECRET ? [{
       path: '/webhooks/twenty',
       method: 'post' as const,
       handler: twentyWebhookHandler,
