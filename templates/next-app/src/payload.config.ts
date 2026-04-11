@@ -6,6 +6,8 @@ import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import { resendAdapter } from '@payloadcms/email-resend'
 import { Contacts, Pages, Media, Users } from './collections'
 import { getPlugins } from './plugins'
+import { twentyWebhookHandler } from './webhooks/twenty-handler'
+import { resendWebhookHandler } from './webhooks/resend-handler'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -46,6 +48,18 @@ export default buildConfig({
   serverURL: process.env.NEXT_PUBLIC_SERVER_URL || '',
   collections: [Pages, Media, Users, ...(process.env.TWENTY_API_URL ? [Contacts] : [])],
   plugins: getPlugins(),
+  endpoints: [
+    ...(process.env.TWENTY_WEBHOOK_SECRET ? [{
+      path: '/webhooks/twenty',
+      method: 'post' as const,
+      handler: twentyWebhookHandler,
+    }] : []),
+    ...(process.env.RESEND_WEBHOOK_SECRET ? [{
+      path: '/webhooks/resend',
+      method: 'post' as const,
+      handler: resendWebhookHandler,
+    }] : []),
+  ],
   editor: lexicalEditor(),
   // Email via Resend — required for form builder emails and auth (password reset, etc.)
   ...(process.env.RESEND_API_KEY && {
