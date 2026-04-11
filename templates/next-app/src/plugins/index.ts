@@ -411,22 +411,23 @@ export function getPlugins(): Plugin[] {
   //   cachedPayloadPlugin,
   // )
 
-  // Sentry plugin — disabled: AdminErrorBoundary component missing from import map
-  // breaks the entire admin UI. Re-enable when @payloadcms/plugin-sentry fixes the client export.
-  // plugins.unshift(
-  //   sentryPlugin({
-  //     Sentry,
-  //     options: {
-  //       captureErrors: [400, 403, 404, 500],
-  //       context: ({ defaultContext, req }) => ({
-  //         ...defaultContext,
-  //         tags: {
-  //           locale: req.locale || 'en',
-  //         },
-  //       }),
-  //     },
-  //   }),
-  // )
+  // Sentry plugin — unshifted to be first in array so it wraps all other operations
+  if (process.env.SENTRY_DSN) {
+    plugins.unshift(
+      sentryPlugin({
+        Sentry,
+        options: {
+          captureErrors: [400, 403, 404, 500],
+          context: ({ defaultContext, req }) => ({
+            ...defaultContext,
+            tags: {
+              locale: req.locale || 'en',
+            },
+          }),
+        },
+      }),
+    )
+  }
 
   return plugins
 }
