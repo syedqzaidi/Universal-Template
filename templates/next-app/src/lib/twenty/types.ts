@@ -5,13 +5,23 @@ export interface FullName {
   lastName: string
 }
 
+export interface Emails {
+  primaryEmail: string
+  additionalEmails?: string[]
+}
+
+export interface Phones {
+  primaryPhoneNumber: string
+  additionalPhones?: string[]
+}
+
 // ─── Core Entities ───────────────────────────────────────────────────────────
 
 export interface Person {
   id: string
   name: FullName
-  email?: string
-  phone?: string
+  emails?: Emails
+  phones?: Phones
   city?: string
   jobTitle?: string
   linkedinUrl?: string

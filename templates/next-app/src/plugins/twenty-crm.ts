@@ -120,7 +120,8 @@ async function syncTarget(
 
   switch (target.object) {
     case 'people': {
-      const email = mapped.email as string | undefined
+      const emails = mapped.emails as { primaryEmail?: string } | undefined
+      const email = emails?.primaryEmail
       if (!email) {
         log('Skipping people sync — no email found')
         return

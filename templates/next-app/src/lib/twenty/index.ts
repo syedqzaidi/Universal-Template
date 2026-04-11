@@ -1,5 +1,7 @@
 export type {
   FullName,
+  Emails,
+  Phones,
   Person,
   Company,
   Opportunity,

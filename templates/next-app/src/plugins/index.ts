@@ -273,7 +273,7 @@ export function getPlugins(): Plugin[] {
               {
                 object: 'people',
                 fields: [
-                  { sourceField: 'email', targetField: 'email' },
+                  { sourceField: 'email', targetField: 'emails.primaryEmail' },
                   {
                     sourceField: 'firstName',
                     targetField: 'name.firstName',
@@ -284,7 +284,7 @@ export function getPlugins(): Plugin[] {
                     targetField: 'name.lastName',
                     transform: (v) => String(v || ''),
                   },
-                  { sourceField: 'phone', targetField: 'phone' },
+                  { sourceField: 'phone', targetField: 'phones.primaryPhoneNumber' },
                   { sourceField: 'company', targetField: 'jobTitle' },
                 ],
               },
@@ -309,7 +309,7 @@ export function getPlugins(): Plugin[] {
               {
                 object: 'people',
                 fields: [
-                  { sourceField: 'email', targetField: 'email' },
+                  { sourceField: 'email', targetField: 'emails.primaryEmail' },
                   { sourceField: 'name', targetField: 'name.firstName' },
                 ],
               },

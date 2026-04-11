@@ -244,7 +244,7 @@ export class TwentyClient {
           const data = await this.execute<{
             people: { edges: Array<{ node: Person }> }
           }>(query, {
-            filter: { email: { eq: email } },
+            filter: { emails: { primaryEmail: { eq: email } } },
           })
           const nodes = extractNodes(data.people.edges)
           return nodes[0] ?? null

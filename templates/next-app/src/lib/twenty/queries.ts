@@ -52,8 +52,8 @@ const DEFAULT_FIELDS: Record<string, string> = {
   people: `
     id
     name { firstName lastName }
-    email
-    phone
+    emails { primaryEmail }
+    phones { primaryPhoneNumber }
     city
     jobTitle
     linkedinUrl
