@@ -11,7 +11,7 @@ import sentry from '@sentry/astro';
 // Then uncomment the matching import:
 // import vercel from '@astrojs/vercel';
 // import cloudflare from '@astrojs/cloudflare';
-// import node from '@astrojs/node';
+import node from '@astrojs/node';
 
 export default defineConfig({
   // Astro 6: output 'static' is the default — pages are SSG unless they
@@ -19,7 +19,7 @@ export default defineConfig({
   site: process.env.SITE_URL || 'http://localhost:4400',
   trailingSlash: 'never',
   server: { port: 4400 },
-  // adapter: vercel(),  // Uncomment for deployment target
+  adapter: node({ mode: 'standalone' }),  // Required for SSR routes (preview, search)
   vite: {
     plugins: [tailwindcss()],
   },
