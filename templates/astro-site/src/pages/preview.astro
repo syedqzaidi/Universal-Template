@@ -1,0 +1,48 @@
+---
+export const prerender = false
+
+import SEOLayout from '../layouts/SEOLayout.astro'
+import BlockRenderer from '../components/blocks/BlockRenderer.astro'
+import { createPayloadClient } from '@template/shared/payload'
+
+const url = new URL(Astro.request.url)
+const collection = url.searchParams.get('collection')
+const slug = url.searchParams.get('slug')
+const token = url.searchParams.get('token')
+
+const previewSecret = import.meta.env.PREVIEW_SECRET
+if (!previewSecret || token !== previewSecret) {
+  return new Response('Unauthorized', { status: 401 })
+}
+
+if (!collection || !slug) {
+  return new Response('Missing collection or slug', { status: 400 })
+}
+
+const payload = createPayloadClient({
+  apiUrl: import.meta.env.PAYLOAD_API_URL || 'http://localhost:3158/api',
+  apiKey: import.meta.env.PAYLOAD_API_KEY,
+})
+
+const doc = await payload.fetchBySlug(collection, slug, 2)
+
+if (!doc) {
+  return new Response('Document not found', { status: 404 })
+}
+---
+
+<SEOLayout title={`[PREVIEW] ${(doc as any).title || (doc as any).name || slug}`} noindex={true}>
+  <div class="bg-yellow-100 border-b border-yellow-300 px-4 py-2 text-center text-sm font-medium text-yellow-800">
+    Preview Mode -- This page is not published
+  </div>
+  <article>
+    <h1 class="text-4xl font-bold px-4 py-8 max-w-4xl mx-auto">
+      {(doc as any).title || (doc as any).name || (doc as any).displayName}
+    </h1>
+    {(doc as any).layout && (
+      <div class="max-w-4xl mx-auto px-4">
+        <BlockRenderer blocks={(doc as any).layout || []} context={{}} />
+      </div>
+    )}
+  </article>
+</SEOLayout>

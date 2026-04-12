@@ -1,0 +1,36 @@
+---
+import SEOLayout from '../layouts/SEOLayout.astro'
+import TeamMemberCard from '../components/TeamMemberCard.astro'
+import { createPayloadClient } from '@template/shared/payload'
+
+const payload = createPayloadClient({
+  apiUrl: import.meta.env.PAYLOAD_API_URL || 'http://localhost:3158/api',
+})
+
+const [siteSettings, { docs: members }] = await Promise.all([
+  payload.getSiteSettings(),
+  payload.getTeamMembers(),
+])
+
+const siteUrl = import.meta.env.SITE_URL || 'https://example.com'
+---
+
+<SEOLayout
+  title={`Our Team | ${siteSettings.siteName}`}
+  description={`Meet the ${members.length} professionals at ${siteSettings.siteName}.`}
+  canonicalUrl={`${siteUrl}/team`}
+  pageType="team"
+  schemaData={{ title: 'Our Team', slug: 'team' }}
+>
+  <div class="container mx-auto px-4 py-12">
+    <h1 class="text-4xl font-bold mb-8">Our Team</h1>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      {members.map((member) => (
+        <TeamMemberCard member={member} />
+      ))}
+    </div>
+    {members.length === 0 && (
+      <p class="text-muted-foreground text-center py-12">Team information coming soon.</p>
+    )}
+  </div>
+</SEOLayout>

@@ -222,7 +222,16 @@ async function removeAstro() {
   });
 
   await filterLines('.env.template', (line) => {
-    return !line.match(/^PUBLIC_/);
+    const trimmed = line.trim();
+    if (trimmed.match(/^PUBLIC_/)) return false;
+    // Astro-specific integration vars
+    if (trimmed.startsWith('PAYLOAD_API_URL')) return false;
+    if (trimmed.startsWith('PAYLOAD_API_KEY')) return false;
+    if (trimmed.startsWith('SITE_URL')) return false;
+    if (trimmed.startsWith('PREVIEW_SECRET')) return false;
+    if (trimmed.startsWith('URL_PATTERN')) return false;
+    if (trimmed === '# Astro + Payload Integration') return false;
+    return true;
   });
 
   await removeMcpEntry('astro-docs');
@@ -281,12 +290,19 @@ async function removePayload(selections) {
     ]);
   });
 
-  // Remove Payload env vars
+  // Remove Payload env vars + Astro-Payload integration vars
   await filterLines('.env.template', (line) => {
     const trimmed = line.trim();
     if (trimmed.startsWith('PAYLOAD_SECRET')) return false;
     if (trimmed.startsWith('DATABASE_URL')) return false;
     if (trimmed.startsWith('NEXT_PUBLIC_SERVER_URL')) return false;
+    if (trimmed.startsWith('PUBLIC_ASTRO_URL')) return false;
+    if (trimmed.startsWith('PAYLOAD_API_URL')) return false;
+    if (trimmed.startsWith('PAYLOAD_API_KEY')) return false;
+    if (trimmed.startsWith('SITE_URL')) return false;
+    if (trimmed.startsWith('PREVIEW_SECRET')) return false;
+    if (trimmed.startsWith('URL_PATTERN')) return false;
+    if (trimmed === '# Astro + Payload Integration') return false;
     return true;
   });
 
@@ -780,6 +796,48 @@ async function main() {
       validBackend = true;
     }
 
+    // 3b. Payload integration options (if Payload is selected with Astro)
+    let payloadIntegration = { urlPattern: 'service-first', rebuildMode: 'manual' };
+    if (backend.includes('payload') && frameworks.includes('astro')) {
+      const { urlPattern } = await prompts(
+        {
+          type: 'select',
+          name: 'urlPattern',
+          message: 'URL structure for service pages',
+          choices: [
+            { title: `Service-first ${dim('— /services/plumbing/austin-tx (default)')}`, value: 'service-first' },
+            { title: `Location-first ${dim('— /locations/austin-tx/plumbing')}`, value: 'location-first' },
+          ],
+          initial: 0,
+        },
+        { onCancel }
+      );
+      const { rebuildMode } = await prompts(
+        {
+          type: 'select',
+          name: 'rebuildMode',
+          message: 'Astro rebuild trigger mode',
+          choices: [
+            { title: `Manual ${dim('— Deploy button/CLI only')}`, value: 'manual' },
+            { title: `Auto ${dim('— Webhook on every publish')}`, value: 'auto' },
+            { title: `Auto with Review ${dim('— Auto for singles, queue bulk ops')}`, value: 'auto-review' },
+          ],
+          initial: 0,
+        },
+        { onCancel }
+      );
+      const { localization } = await prompts(
+        {
+          type: 'confirm',
+          name: 'localization',
+          message: 'Enable localization (en/es/fr URL prefixes)?',
+          initial: false,
+        },
+        { onCancel }
+      );
+      payloadIntegration = { urlPattern, rebuildMode, localization };
+    }
+
     // 4. Integrations
     const { integrations } = await prompts(
       {
@@ -808,7 +866,7 @@ async function main() {
       { onCancel }
     );
 
-    selections = { frameworks, backend, integrations };
+    selections = { frameworks, backend, integrations, payloadIntegration };
 
     // 5. Confirmation
     console.log('');
@@ -923,6 +981,18 @@ async function main() {
   if (!selections.frameworks.includes('astro')) await removeAstro();
 
   // ── Post-Removal Cleanup ──────────────────────────────────────────────────
+
+  // Apply Payload integration preferences to .env.template
+  if (selections.payloadIntegration && selections.backend?.includes('payload') && selections.frameworks?.includes('astro')) {
+    const { urlPattern, rebuildMode } = selections.payloadIntegration;
+    if (urlPattern) {
+      await replaceInFile('.env.template', /^URL_PATTERN=.*/m, `URL_PATTERN=${urlPattern}`);
+    }
+    // rebuildMode is applied at runtime via SiteSettings, not env — log it for the user
+    if (rebuildMode && rebuildMode !== 'manual') {
+      console.log(`  ${cyan('Note:')} Rebuild mode "${rebuildMode}" — configure in Payload admin: Settings > Site Settings > Rebuild Mode`);
+    }
+  }
 
   console.log('');
   console.log(bold(cyan('Cleaning up...')));

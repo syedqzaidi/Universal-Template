@@ -1,0 +1,54 @@
+---
+import type { Block } from '@template/shared/payload/types'
+import HeroBlock from './HeroBlock.astro'
+import ServiceDetailBlock from './ServiceDetailBlock.astro'
+import FAQBlock from './FAQBlock.astro'
+import TestimonialsBlock from './TestimonialsBlock.astro'
+import CTABlock from './CTABlock.astro'
+import LocationMapBlock from './LocationMapBlock.astro'
+import ContentBlock from './ContentBlock.astro'
+import StatsBlock from './StatsBlock.astro'
+import GalleryBlock from './GalleryBlock.astro'
+import PricingBlock from './PricingBlock.astro'
+import TeamBlock from './TeamBlock.astro'
+import RelatedLinksBlock from './RelatedLinksBlock.astro'
+
+interface Props {
+  blocks: Block[]
+  context?: Record<string, any>
+  baseHeadingLevel?: 2 | 3 | 4
+}
+
+const { blocks = [], context = {}, baseHeadingLevel = 2 } = Astro.props
+---
+
+{blocks.map((block, index) => {
+  switch (block.blockType) {
+    case 'hero':
+      return <HeroBlock data={block} context={context} headingLevel={baseHeadingLevel} />
+    case 'serviceDetail':
+      return <ServiceDetailBlock data={block} context={context} headingLevel={baseHeadingLevel} />
+    case 'faq':
+      return <FAQBlock data={block} context={context} headingLevel={baseHeadingLevel} />
+    case 'testimonials':
+      return <TestimonialsBlock data={block} context={context} headingLevel={baseHeadingLevel} />
+    case 'cta':
+      return <CTABlock data={block} context={context} headingLevel={baseHeadingLevel} />
+    case 'locationMap':
+      return <LocationMapBlock data={block} context={context} headingLevel={baseHeadingLevel} />
+    case 'content':
+      return <ContentBlock data={block} context={context} headingLevel={baseHeadingLevel} />
+    case 'stats':
+      return <StatsBlock data={block} context={context} headingLevel={baseHeadingLevel} />
+    case 'gallery':
+      return <GalleryBlock data={block} context={context} headingLevel={baseHeadingLevel} />
+    case 'pricing':
+      return <PricingBlock data={block} context={context} headingLevel={baseHeadingLevel} />
+    case 'team':
+      return <TeamBlock data={block} context={context} headingLevel={baseHeadingLevel} />
+    case 'relatedLinks':
+      return <RelatedLinksBlock data={block} context={context} headingLevel={baseHeadingLevel} />
+    default:
+      return null
+  }
+})}

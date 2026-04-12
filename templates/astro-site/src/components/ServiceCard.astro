@@ -1,0 +1,23 @@
+---
+import type { Service } from '@template/shared/payload/types'
+import PayloadImage from './PayloadImage.astro'
+
+interface Props {
+  service: Service
+}
+
+const { service } = Astro.props
+---
+
+<article class="border rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
+  {typeof service.featuredImage === 'object' && (
+    <PayloadImage image={service.featuredImage} size="card" class="w-full h-48 object-cover" />
+  )}
+  <div class="p-6">
+    <span class="text-xs font-medium uppercase tracking-wider text-primary">{service.category}</span>
+    <h3 class="text-xl font-semibold mt-2">
+      <a href={`/services/${service.slug}`} class="hover:text-primary transition-colors">{service.name}</a>
+    </h3>
+    <p class="text-muted-foreground mt-2 line-clamp-3">{service.shortDescription}</p>
+  </div>
+</article>

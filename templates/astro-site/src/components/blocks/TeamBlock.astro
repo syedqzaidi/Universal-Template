@@ -1,0 +1,40 @@
+---
+import TeamMemberCard from '../TeamMemberCard.astro'
+import { createPayloadClient } from '@template/shared/payload'
+
+interface Props { data: any; context?: Record<string, any>; headingLevel?: 2 | 3 | 4 }
+const { data, context = {}, headingLevel = 2 } = Astro.props
+const HeadingTag = `h${headingLevel}` as any
+
+// Resolve team members based on source mode
+let members: any[] = []
+if (data.source === 'manual') {
+  members = (data.members || []).map((m: any) => typeof m === 'object' ? m : null).filter(Boolean)
+} else {
+  // Fetch from API: all or by location
+  const payload = createPayloadClient({
+    apiUrl: import.meta.env.PAYLOAD_API_URL || 'http://localhost:3158/api',
+  })
+  if (data.source === 'location' && context.location?.id) {
+    const result = await payload.getTeamMembers({ 'where[locations][equals]': context.location.id })
+    members = result.docs
+  } else {
+    // Default: all
+    const result = await payload.getTeamMembers()
+    members = result.docs
+  }
+}
+
+const maxItems = data.maxItems || 8
+const displayMembers = members.slice(0, maxItems)
+---
+<section class="py-12 px-4">
+  <div class="container mx-auto">
+    {data.heading && <HeadingTag class="text-3xl font-bold mb-8 text-center">{data.heading}</HeadingTag>}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      {displayMembers.map((member: any) => (
+        <TeamMemberCard member={member} />
+      ))}
+    </div>
+  </div>
+</section>

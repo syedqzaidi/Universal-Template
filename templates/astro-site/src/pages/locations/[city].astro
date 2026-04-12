@@ -1,0 +1,42 @@
+---
+import SEOLayout from '../../layouts/SEOLayout.astro'
+import RichText from '../../components/RichText.astro'
+import { createPayloadClient } from '@template/shared/payload'
+
+const payload = createPayloadClient({
+  apiUrl: import.meta.env.PAYLOAD_API_URL || 'http://localhost:3158/api',
+})
+
+export async function getStaticPaths() {
+  const payload = createPayloadClient({
+    apiUrl: import.meta.env.PAYLOAD_API_URL || 'http://localhost:3158/api',
+  })
+  const { docs: locations } = await payload.getAllLocations()
+  return locations.map((location) => ({
+    params: { city: location.slug },
+  }))
+}
+
+const { city } = Astro.params
+const location = await payload.getLocationBySlug(city!)
+
+if (!location) return Astro.redirect('/404')
+
+const siteUrl = import.meta.env.SITE_URL || 'https://example.com'
+---
+
+<SEOLayout
+  title={location.seoTitle || `Services in ${location.displayName}`}
+  description={location.seoDescription || location.areaInfo || `Find professional services in ${location.displayName}`}
+  ogImage={typeof location.featuredImage === 'object' ? location.featuredImage?.sizes?.og?.url : undefined}
+  canonicalUrl={`${siteUrl}/locations/${location.slug}`}
+  pageType="location"
+  schemaData={location}
+>
+  <div class="container mx-auto px-4 py-12">
+    <h1 class="text-4xl font-bold mb-8">Services in {location.displayName}</h1>
+    {location.description && (
+      <RichText content={location.description} class="mb-12" />
+    )}
+  </div>
+</SEOLayout>

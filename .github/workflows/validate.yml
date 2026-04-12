@@ -55,6 +55,8 @@ jobs:
             "packages/shared/src/supabase/client.ts"
             "packages/shared/src/posthog/init.ts"
             "packages/shared/src/resend/client.ts"
+            "packages/shared/src/payload/client.ts"
+            "packages/shared/src/payload/types.ts"
             "docker/twenty/docker-compose.yml"
             "supabase/config.toml"
             "scripts/init-project.sh"
@@ -74,6 +76,46 @@ jobs:
             exit 1
           fi
           echo "All critical files present"
+
+      - name: Verify Payload collection and block files
+        run: |
+          for file in Services Locations ServicePages BlogPosts FAQs Testimonials TeamMembers; do
+            test -f templates/next-app/src/collections/${file}.ts || (echo "Missing: ${file}.ts" && exit 1)
+          done
+          for file in Hero ServiceDetail FAQ Testimonials CTA LocationMap Content Stats Gallery Pricing Team RelatedLinks; do
+            test -f templates/next-app/src/blocks/${file}.ts || (echo "Missing: ${file}.ts" && exit 1)
+          done
+          echo "All collection and block files present"
+
+      - name: Verify shared payload client
+        run: |
+          test -f packages/shared/src/payload/client.ts || (echo "Missing payload client" && exit 1)
+          test -f packages/shared/src/payload/types.ts || (echo "Missing payload types" && exit 1)
+          echo "Shared payload client present"
+
+      - name: Verify Astro route structure
+        run: |
+          for route in \
+            "services/index.astro" "services/[slug].astro" "services/[service]/[city].astro" \
+            "locations/index.astro" "locations/[city].astro" \
+            "blog/index.astro" "blog/[slug].astro" \
+            "team.astro" "faq.astro" "contact.astro" "privacy.astro" "terms.astro" \
+            "404.astro" "preview.astro" "search.astro" \
+            "sitemap.xml.ts" "sitemap-index.xml.ts" "robots.txt.ts"; do
+            test -f "templates/astro-site/src/pages/${route}" || (echo "Missing route: ${route}" && exit 1)
+          done
+          echo "All Astro routes present"
+
+      - name: Verify Astro components
+        run: |
+          for comp in \
+            "layouts/SEOLayout.astro" "lib/seo.ts" \
+            "components/SiteHeader.astro" "components/SiteFooter.astro" \
+            "components/RichText.astro" "components/PayloadImage.astro" \
+            "components/Breadcrumbs.astro" "components/blocks/BlockRenderer.astro"; do
+            test -f "templates/astro-site/src/${comp}" || (echo "Missing: ${comp}" && exit 1)
+          done
+          echo "All Astro components present"
 
       - name: Check for placeholder secrets in committed files
         run: |
@@ -106,6 +148,11 @@ jobs:
             "PAYLOAD_SECRET"
             "DATABASE_URL"
             "NEXT_PUBLIC_SERVER_URL"
+            "PUBLIC_ASTRO_URL"
+            "PAYLOAD_API_URL"
+            "SITE_URL"
+            "PREVIEW_SECRET"
+            "URL_PATTERN"
           )
 
           missing=0

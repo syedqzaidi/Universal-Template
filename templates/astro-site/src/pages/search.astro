@@ -1,0 +1,82 @@
+---
+export const prerender = false
+
+import SEOLayout from '../layouts/SEOLayout.astro'
+import { createPayloadClient } from '@template/shared/payload'
+
+const payload = createPayloadClient({
+  apiUrl: import.meta.env.PAYLOAD_API_URL || 'http://localhost:3158/api',
+})
+
+const url = new URL(Astro.request.url)
+const query = url.searchParams.get('q') || ''
+
+let results: Array<{ doc: { relationTo: string; value: any }; title?: string; slug?: string; priority?: number }> = []
+if (query.trim()) {
+  try {
+    const response = await payload.fetchList<any>('search', {
+      'where[or][0][title][like]': query,
+      limit: '20',
+      sort: '-priority',
+    })
+    results = response.docs
+  } catch {
+    results = []
+  }
+}
+
+function getResultUrl(result: any): string {
+  const collection = result.doc?.relationTo || ''
+  const slug = result.slug || ''
+  switch (collection) {
+    case 'services': return `/services/${slug}`
+    case 'locations': return `/locations/${slug}`
+    case 'service-pages': {
+      // Service-page slugs are formatted as "{service-slug}-in-{location-slug}"
+      // Parse the slug to reconstruct the /services/{service}/{city} URL
+      const parts = slug.split('-in-')
+      if (parts.length === 2) return `/services/${parts[0]}/${parts[1]}`
+      return `/services/${slug}`
+    }
+    case 'blog-posts': return `/blog/${slug}`
+    case 'pages': return `/${slug}`
+    default: return `/${slug}`
+  }
+}
+---
+
+<SEOLayout title={query ? `Search: ${query}` : 'Search'} noindex={true}>
+  <div class="container max-w-3xl mx-auto py-12">
+    <h1 class="text-3xl font-bold mb-6">Search</h1>
+
+    <form action="/search" method="GET" class="mb-8">
+      <div class="flex gap-2">
+        <input type="search" name="q" value={query} placeholder="Search services, locations, blog posts..." class="flex-1 rounded-lg border px-4 py-3 text-lg" aria-label="Search" autofocus />
+        <button type="submit" class="px-6 py-3 bg-primary text-primary-foreground rounded-lg font-semibold">Search</button>
+      </div>
+    </form>
+
+    {query && (
+      <p class="text-muted-foreground mb-6">
+        {results.length} result{results.length !== 1 ? 's' : ''} for "{query}"
+      </p>
+    )}
+
+    {results.length > 0 ? (
+      <ul class="space-y-4">
+        {results.map((result) => (
+          <li class="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
+            <a href={getResultUrl(result)} class="block">
+              <h2 class="text-lg font-semibold text-primary">{result.title || 'Untitled'}</h2>
+              <p class="text-sm text-muted-foreground mt-1 capitalize">
+                {(result.doc?.relationTo || '').replace(/-/g, ' ')}
+              </p>
+            </a>
+          </li>
+        ))}
+      </ul>
+    ) : query ? (
+      <p class="text-muted-foreground">No results found. Try a different search term.</p>
+    ) : null}
+  </div>
+</SEOLayout>

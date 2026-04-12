@@ -1,0 +1,49 @@
+---
+import SEOLayout from '../../layouts/SEOLayout.astro'
+import ServiceCard from '../../components/ServiceCard.astro'
+import { createPayloadClient } from '@template/shared/payload'
+
+const payload = createPayloadClient({
+  apiUrl: import.meta.env.PAYLOAD_API_URL || 'http://localhost:3158/api',
+})
+
+const [siteSettings, { docs: services }] = await Promise.all([
+  payload.getSiteSettings(),
+  payload.getAllServices({ sort: 'name' }),
+])
+
+const siteUrl = import.meta.env.SITE_URL || 'https://example.com'
+
+const categories = ['residential', 'commercial', 'emergency', 'maintenance'] as const
+const grouped = categories.map((cat) => ({
+  label: cat.charAt(0).toUpperCase() + cat.slice(1),
+  services: services.filter((s) => s.category === cat),
+})).filter((g) => g.services.length > 0)
+---
+
+<SEOLayout
+  title={`Our Services | ${siteSettings.siteName}`}
+  description={`Professional services offered by ${siteSettings.siteName}. Browse our full range of ${services.length} services.`}
+  canonicalUrl={`${siteUrl}/services`}
+  pageType="page"
+  schemaData={{ title: 'Our Services', slug: 'services' }}
+>
+  <div class="container mx-auto px-4 py-12">
+    <h1 class="text-4xl font-bold mb-8">Our Services</h1>
+
+    {grouped.map((group) => (
+      <section class="mb-12">
+        <h2 class="text-2xl font-semibold mb-6">{group.label} Services</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {group.services.map((service) => (
+            <ServiceCard service={service} />
+          ))}
+        </div>
+      </section>
+    ))}
+
+    {services.length === 0 && (
+      <p class="text-muted-foreground text-center py-12">No services available yet. Check back soon.</p>
+    )}
+  </div>
+</SEOLayout>

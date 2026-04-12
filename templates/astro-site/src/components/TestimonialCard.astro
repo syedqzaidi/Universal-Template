@@ -1,0 +1,24 @@
+---
+import type { Testimonial } from '@template/shared/payload/types'
+
+interface Props {
+  testimonial: Testimonial
+}
+
+const { testimonial } = Astro.props
+const stars = Array.from({ length: 5 }, (_, i) => i < testimonial.rating ? '★' : '☆').join('')
+---
+
+<div class="border rounded-lg p-6">
+  <div class="text-yellow-500 text-lg mb-2">{stars}</div>
+  <p class="text-muted-foreground italic">"{testimonial.review}"</p>
+  <div class="mt-4 flex items-center gap-3">
+    {typeof testimonial.avatar === 'object' && testimonial.avatar?.sizes?.square?.url && (
+      <img src={testimonial.avatar.sizes.square.url} alt={testimonial.clientName} class="w-10 h-10 rounded-full object-cover" loading="lazy" />
+    )}
+    <div>
+      <p class="font-semibold text-sm">{testimonial.clientName}</p>
+      {testimonial.clientTitle && <p class="text-xs text-muted-foreground">{testimonial.clientTitle}</p>}
+    </div>
+  </div>
+</div>

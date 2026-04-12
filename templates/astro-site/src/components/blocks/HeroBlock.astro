@@ -1,0 +1,52 @@
+---
+interface Props {
+  data: {
+    heading: string
+    subheading?: string
+    backgroundImage?: any
+    cta?: { text?: string; link?: string; phone?: string }
+    style?: 'centered' | 'left' | 'split' | 'fullbleed'
+    overlayOpacity?: number
+  }
+  context?: Record<string, any>
+  headingLevel?: 2 | 3 | 4
+}
+
+const { data, context = {}, headingLevel = 2 } = Astro.props
+const rawBgUrl = typeof data.backgroundImage === 'object' ? data.backgroundImage?.sizes?.hero?.url || data.backgroundImage?.url : undefined
+// CSS-sanitize the URL to prevent CSS injection via url() breakout
+const bgUrl = rawBgUrl ? rawBgUrl.replace(/[()'"\\;{}]/g, '') : undefined
+const overlay = data.overlayOpacity ?? 40
+const HeadingTag = `h${headingLevel}` as any
+---
+
+<section
+  class:list={['relative py-20 px-4', {
+    'text-center': data.style === 'centered' || !data.style,
+    'text-left': data.style === 'left',
+  }]}
+>
+  {bgUrl && (
+    <div class="absolute inset-0 bg-cover bg-center" style={`background-image: url('${bgUrl}')`}>
+      <div class="absolute inset-0 bg-black" style={`opacity: ${overlay / 100}`}></div>
+    </div>
+  )}
+  <div class="relative z-10 max-w-4xl mx-auto">
+    <HeadingTag class="text-4xl md:text-6xl font-bold text-white">{data.heading}</HeadingTag>
+    {data.subheading && <p class="mt-4 text-xl text-white/80">{data.subheading}</p>}
+    {data.cta && (
+      <div class="mt-8 flex gap-4 justify-center">
+        {data.cta.link && (
+          <a href={data.cta.link} class="px-8 py-3 bg-primary text-primary-foreground rounded-lg font-semibold">
+            {data.cta.text || 'Get a Free Quote'}
+          </a>
+        )}
+        {data.cta.phone && (
+          <a href={`tel:${data.cta.phone}`} class="px-8 py-3 border border-white text-white rounded-lg font-semibold">
+            Call {data.cta.phone}
+          </a>
+        )}
+      </div>
+    )}
+  </div>
+</section>

@@ -1,0 +1,57 @@
+---
+import { createPayloadClient } from '@template/shared/payload'
+
+interface Props { data: any; context?: Record<string, any>; headingLevel?: 2 | 3 | 4 }
+const { data, context = {}, headingLevel = 2 } = Astro.props
+const HeadingTag = `h${headingLevel}` as any
+const layout = data.layout || 'grid'
+
+// Resolve testimonials based on source mode
+let testimonials: any[] = []
+if (data.source === 'manual') {
+  testimonials = (data.testimonials || []).map((t: any) => typeof t === 'object' ? t : null).filter(Boolean)
+} else {
+  // Fetch from API: featured, by service, or by location
+  const payload = createPayloadClient({
+    apiUrl: import.meta.env.PAYLOAD_API_URL || 'http://localhost:3158/api',
+  })
+  if (data.source === 'service' && context.service?.id) {
+    const result = await payload.getTestimonials({ 'where[service][equals]': context.service.id })
+    testimonials = result.docs
+  } else if (data.source === 'location' && context.location?.id) {
+    const result = await payload.getTestimonials({ 'where[location][equals]': context.location.id })
+    testimonials = result.docs
+  } else {
+    // Default: featured
+    const result = await payload.getFeaturedTestimonials()
+    testimonials = result.docs
+  }
+}
+
+const maxItems = data.maxItems || 6
+const displayTestimonials = testimonials.slice(0, maxItems)
+---
+<section class="py-12 px-4 bg-muted/30">
+  <div class="container mx-auto">
+    {data.heading && <HeadingTag class="text-3xl font-bold mb-8 text-center">{data.heading}</HeadingTag>}
+    <div class:list={[{
+      'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6': layout === 'grid',
+      'flex gap-6 overflow-x-auto snap-x snap-mandatory': layout === 'carousel',
+      'space-y-6 max-w-2xl mx-auto': layout === 'stack',
+    }]}>
+      {displayTestimonials.map((testimonial: any) => {
+        const stars = Array.from({ length: 5 }, (_, i) => i < (testimonial.rating || 0) ? '★' : '☆').join('')
+        return (
+          <div class:list={['border rounded-lg p-6 bg-background', { 'snap-start flex-shrink-0 w-80': layout === 'carousel' }]}>
+            <div class="text-yellow-500 mb-2">{stars}</div>
+            <p class="text-muted-foreground italic">"{testimonial.review}"</p>
+            <div class="mt-4">
+              <p class="font-semibold text-sm">{testimonial.clientName}</p>
+              {testimonial.clientTitle && <p class="text-xs text-muted-foreground">{testimonial.clientTitle}</p>}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  </div>
+</section>

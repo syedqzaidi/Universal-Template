@@ -1,0 +1,20 @@
+---
+import type { TeamMember } from '@template/shared/payload/types'
+
+interface Props {
+  member: TeamMember
+}
+
+const { member } = Astro.props
+---
+
+<div class="border rounded-lg overflow-hidden text-center p-6">
+  {typeof member.photo === 'object' && member.photo?.sizes?.square?.url && (
+    <img src={member.photo.sizes.square.url} alt={member.name} class="w-24 h-24 rounded-full object-cover mx-auto mb-4" loading="lazy" />
+  )}
+  <h3 class="text-lg font-semibold">{member.name}</h3>
+  <p class="text-sm text-primary">{member.role}</p>
+  {member.email && (
+    <a href={`mailto:${member.email}`} class="text-sm text-muted-foreground hover:text-foreground mt-2 block">{member.email}</a>
+  )}
+</div>

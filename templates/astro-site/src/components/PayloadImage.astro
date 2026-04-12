@@ -1,0 +1,79 @@
+---
+interface Props {
+  image: any  // Media object or string ID
+  size?: 'thumbnail' | 'card' | 'hero' | 'heroMobile' | 'gallery' | 'galleryThumb' | 'og' | 'square' | 'content'
+  alt?: string
+  class?: string
+  loading?: 'lazy' | 'eager'
+  fetchpriority?: 'high' | 'low' | 'auto'
+  widths?: number[]
+  enableFormatSources?: boolean  // MD-5: Set to false if no CDN with auto-format conversion
+}
+
+const { image, size, alt, class: className, loading = 'lazy', fetchpriority, widths, enableFormatSources = true } = Astro.props
+
+if (!image || typeof image === 'string') return null
+
+const src = size && image.sizes?.[size]?.url
+  ? image.sizes[size].url
+  : image.url
+
+const imgAlt = alt || image.alt || ''
+if (!imgAlt && image.filename) {
+  console.warn(`[PayloadImage] Missing alt text for image: ${image.filename}`)
+}
+const width = size && image.sizes?.[size]?.width ? image.sizes[size].width : image.width
+const height = size && image.sizes?.[size]?.height ? image.sizes[size].height : image.height
+
+// Build srcset for responsive images
+const srcset = widths
+  ? widths
+      .map((w) => {
+        const matchingSize = Object.values(image.sizes || {}).find(
+          (s: any) => s?.width >= w
+        ) as any
+        return matchingSize ? `${matchingSize.url} ${matchingSize.width}w` : null
+      })
+      .filter(Boolean)
+      .join(', ')
+  : undefined
+---
+
+{image.caption ? (
+  <figure>
+    <picture>
+      {/* AVIF/WebP sources -- only render if CDN auto-format is available (MD-5) */}
+      {enableFormatSources && src && <source srcset={src.replace(/\.(jpe?g|png|webp)$/i, '.avif')} type="image/avif" />}
+      {enableFormatSources && src && <source srcset={src.replace(/\.(jpe?g|png)$/i, '.webp')} type="image/webp" />}
+      {/* Fallback JPEG/PNG */}
+      <img
+        src={src}
+        alt={imgAlt}
+        width={width}
+        height={height}
+        loading={loading}
+        fetchpriority={fetchpriority}
+        class={className}
+        srcset={srcset}
+        decoding="async"
+      />
+    </picture>
+    <figcaption class="text-sm text-muted-foreground mt-2">{image.caption}</figcaption>
+  </figure>
+) : (
+  <picture>
+    {enableFormatSources && src && <source srcset={src.replace(/\.(jpe?g|png|webp)$/i, '.avif')} type="image/avif" />}
+    {enableFormatSources && src && <source srcset={src.replace(/\.(jpe?g|png)$/i, '.webp')} type="image/webp" />}
+    <img
+      src={src}
+      alt={imgAlt}
+      width={width}
+      height={height}
+      loading={loading}
+      fetchpriority={fetchpriority}
+      class={className}
+      srcset={srcset}
+      decoding="async"
+    />
+  </picture>
+)}

@@ -1,0 +1,86 @@
+---
+// src/components/SiteHeader.astro
+import { createPayloadClient } from '@template/shared/payload'
+
+const payload = createPayloadClient({
+  apiUrl: import.meta.env.PAYLOAD_API_URL || 'http://localhost:3158/api',
+})
+
+const { docs: services } = await payload.getAllServices({ sort: 'name' })
+const siteSettings = await payload.getSiteSettings()
+---
+
+<header class="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+  <nav aria-label="Main navigation" class="container flex h-16 items-center justify-between">
+    <a href="/" class="flex items-center gap-2 font-bold text-xl">
+      {typeof siteSettings.logo === 'object' && siteSettings.logo?.url && (
+        <img src={siteSettings.logo.url} alt={siteSettings.siteName} class="h-8 w-auto" />
+      )}
+      <span>{siteSettings.siteName}</span>
+    </a>
+
+    <!-- Mobile menu toggle -->
+    <button
+      class="md:hidden p-2 rounded-lg hover:bg-muted transition-colors"
+      aria-label="Toggle menu"
+      aria-expanded="false"
+      data-mobile-toggle
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+    </button>
+
+    <div class="hidden md:flex items-center gap-6">
+      <!-- Services dropdown -->
+      <div class="relative group">
+        <a href="/services" class="font-medium hover:text-primary transition-colors" aria-haspopup="true">Services</a>
+        <div class="absolute top-full left-0 pt-2 hidden group-hover:block group-focus-within:block">
+          <ul class="bg-background border rounded-lg shadow-lg p-2 min-w-48">
+            {services.map((service) => (
+              <li>
+                <a href={`/services/${service.slug}`} class="block px-4 py-2 rounded hover:bg-muted transition-colors">
+                  {service.name}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+
+      <a href="/locations" class="font-medium hover:text-primary transition-colors">Locations</a>
+      <a href="/blog" class="font-medium hover:text-primary transition-colors">Blog</a>
+      <a href="/contact" class="font-medium hover:text-primary transition-colors">Contact</a>
+
+      {siteSettings.phone && (
+        <a href={`tel:${siteSettings.phone}`} class="font-semibold text-primary">
+          {siteSettings.phone}
+        </a>
+      )}
+    </div>
+  </nav>
+
+  <!-- Mobile menu (hidden by default, toggled via JS) -->
+  <div class="hidden md:hidden border-t" data-mobile-menu>
+    <div class="container py-4 space-y-3">
+      <a href="/services" class="block font-medium py-2 hover:text-primary">Services</a>
+      {services.map((service) => (
+        <a href={`/services/${service.slug}`} class="block pl-4 py-1 text-sm text-muted-foreground hover:text-foreground">{service.name}</a>
+      ))}
+      <a href="/locations" class="block font-medium py-2 hover:text-primary">Locations</a>
+      <a href="/blog" class="block font-medium py-2 hover:text-primary">Blog</a>
+      <a href="/contact" class="block font-medium py-2 hover:text-primary">Contact</a>
+      {siteSettings.phone && (
+        <a href={`tel:${siteSettings.phone}`} class="block font-semibold text-primary py-2">{siteSettings.phone}</a>
+      )}
+    </div>
+  </div>
+</header>
+
+<script>
+  const toggle = document.querySelector('[data-mobile-toggle]')
+  const menu = document.querySelector('[data-mobile-menu]')
+  toggle?.addEventListener('click', () => {
+    const expanded = toggle.getAttribute('aria-expanded') === 'true'
+    toggle.setAttribute('aria-expanded', String(!expanded))
+    menu?.classList.toggle('hidden')
+  })
+</script>

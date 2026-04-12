@@ -1,0 +1,48 @@
+---
+import SEOLayout from '../../layouts/SEOLayout.astro'
+import BlockRenderer from '../../components/blocks/BlockRenderer.astro'
+import Breadcrumbs from '../../components/Breadcrumbs.astro'
+import { createPayloadClient } from '@template/shared/payload'
+
+const payload = createPayloadClient({
+  apiUrl: import.meta.env.PAYLOAD_API_URL || 'http://localhost:3158/api',
+})
+
+export async function getStaticPaths() {
+  const payload = createPayloadClient({
+    apiUrl: import.meta.env.PAYLOAD_API_URL || 'http://localhost:3158/api',
+  })
+  const { docs: services } = await payload.getAllServices()
+  return services.map((service) => ({
+    params: { slug: service.slug },
+  }))
+}
+
+const { slug } = Astro.params
+const [service, siteSettings] = await Promise.all([
+  payload.getServiceBySlug(slug!),
+  payload.getSiteSettings(),
+])
+
+if (!service) return Astro.redirect('/404')
+
+const siteUrl = import.meta.env.SITE_URL || 'https://example.com'
+---
+
+<SEOLayout
+  title={service.seoTitle || service.meta?.title || `${service.name} | ${siteSettings.siteName}`}
+  description={service.seoDescription || service.meta?.description || service.shortDescription}
+  ogImage={typeof service.featuredImage === 'object' ? service.featuredImage?.sizes?.og?.url : undefined}
+  canonicalUrl={`${siteUrl}/services/${service.slug}`}
+  pageType="service"
+  schemaData={service}
+>
+  <div class="container mx-auto px-4">
+    <Breadcrumbs items={[
+      { name: 'Home', url: '/' },
+      { name: 'Services', url: '/services' },
+      { name: service.name, url: `/services/${service.slug}` },
+    ]} />
+  </div>
+  <BlockRenderer blocks={service.layout || []} context={{ service }} />
+</SEOLayout>

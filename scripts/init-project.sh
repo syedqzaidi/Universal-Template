@@ -153,9 +153,11 @@ section "Generating secrets"
 
 PAYLOAD_SECRET=$(openssl rand -hex 32)
 APP_SECRET=$(openssl rand -hex 32)
+PREVIEW_SECRET=$(openssl rand -hex 16)
 
 ok "PAYLOAD_SECRET generated (${#PAYLOAD_SECRET} hex chars)"
 ok "APP_SECRET generated (${#APP_SECRET} hex chars)"
+ok "PREVIEW_SECRET generated (${#PREVIEW_SECRET} hex chars)"
 
 # ---------------------------------------------------------------------------
 # STEP 3b — Apply unique port configuration to all config files
@@ -323,6 +325,13 @@ sed -i.tmp "s|^PAYLOAD_SECRET=.*|PAYLOAD_SECRET=${PAYLOAD_SECRET}|" "${ENV_LOCAL
 # Ensure DATABASE_URL points to the local Supabase DB (template default is correct;
 # this line is here explicitly for documentation / override safety)
 sed -i.tmp "s|^DATABASE_URL=.*|DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:${PORT_SUPABASE_DB}/postgres|" "${ENV_LOCAL}"
+
+# Payload + Astro integration — set API URL and preview secret
+sed -i.tmp "s|^PAYLOAD_API_URL=.*|PAYLOAD_API_URL=http://localhost:${PORT_NEXTJS}/api|" "${ENV_LOCAL}"
+sed -i.tmp "s|^SITE_URL=.*|SITE_URL=http://localhost:${PORT_ASTRO}|" "${ENV_LOCAL}"
+sed -i.tmp "s|^PUBLIC_ASTRO_URL=.*|PUBLIC_ASTRO_URL=http://localhost:${PORT_ASTRO}|" "${ENV_LOCAL}"
+sed -i.tmp "s|^PREVIEW_SECRET=.*|PREVIEW_SECRET=${PREVIEW_SECRET}|" "${ENV_LOCAL}"
+sed -i.tmp "s|^NEXT_PUBLIC_SERVER_URL=.*|NEXT_PUBLIC_SERVER_URL=http://localhost:${PORT_NEXTJS}|" "${ENV_LOCAL}"
 
 rm -f "${ENV_LOCAL}.tmp"
 

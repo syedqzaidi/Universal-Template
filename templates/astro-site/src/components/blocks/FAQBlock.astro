@@ -1,0 +1,52 @@
+---
+import RichText from '../RichText.astro'
+import { createPayloadClient } from '@template/shared/payload'
+
+interface Props { data: any; context?: Record<string, any>; headingLevel?: 2 | 3 | 4 }
+const { data, context = {}, headingLevel = 2 } = Astro.props
+const HeadingTag = `h${headingLevel}` as any
+
+// Resolve FAQs based on source mode
+let faqs: any[] = []
+if (data.source === 'auto') {
+  // Auto-fetch FAQs filtered by the page's service/location context
+  const payload = createPayloadClient({
+    apiUrl: import.meta.env.PAYLOAD_API_URL || 'http://localhost:3158/api',
+  })
+  const serviceId = context.service?.id
+  const locationId = context.location?.id
+  if (serviceId) {
+    const result = await payload.getFAQsByService(serviceId)
+    faqs = result.docs
+  } else if (locationId) {
+    const result = await payload.getFAQsByLocation(locationId)
+    faqs = result.docs
+  } else {
+    const result = await payload.getFAQs({ limit: String(data.maxItems || 8) })
+    faqs = result.docs
+  }
+} else {
+  // Manual selection — use the faqs relationship from block data
+  faqs = (data.faqs || []).map((faq: any) => typeof faq === 'object' ? faq : null).filter(Boolean)
+}
+
+const maxItems = data.maxItems || 8
+const displayFaqs = faqs.slice(0, maxItems)
+---
+<section class="py-12 px-4">
+  <div class="container mx-auto max-w-3xl">
+    {data.heading && <HeadingTag class="text-3xl font-bold mb-6">{data.heading}</HeadingTag>}
+    <dl class="space-y-4">
+      {displayFaqs.map((faq: any) => (
+        <details class="border rounded-lg">
+          <summary class="px-6 py-4 cursor-pointer font-medium hover:bg-muted/50 transition-colors">
+            {faq.question}
+          </summary>
+          <dd class="px-6 pb-4 text-muted-foreground">
+            {typeof faq.answer === 'string' ? faq.answer : <RichText content={faq.answer} />}
+          </dd>
+        </details>
+      ))}
+    </dl>
+  </div>
+</section>

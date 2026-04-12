@@ -1,0 +1,23 @@
+---
+interface Props { data: any; context?: Record<string, any>; headingLevel?: 2 | 3 | 4 }
+const { data, context = {}, headingLevel = 2 } = Astro.props
+const HeadingTag = `h${headingLevel}` as any
+---
+<section class="py-12 px-4">
+  <div class="container mx-auto max-w-4xl">
+    {data.heading && <HeadingTag class="text-3xl font-bold mb-6">{data.heading}</HeadingTag>}
+    {data.features && data.features.length > 0 && (
+      <ul class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+        {data.features.map((f: any) => (
+          <li class="flex gap-3">
+            {f.icon && <span class="text-primary text-xl">{f.icon}</span>}
+            <div>
+              <p class="font-semibold">{f.title}</p>
+              {f.description && <p class="text-muted-foreground text-sm mt-1">{f.description}</p>}
+            </div>
+          </li>
+        ))}
+      </ul>
+    )}
+  </div>
+</section>

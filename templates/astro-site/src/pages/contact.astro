@@ -1,0 +1,50 @@
+---
+import SEOLayout from '../layouts/SEOLayout.astro'
+import { createPayloadClient } from '@template/shared/payload'
+
+const payload = createPayloadClient({
+  apiUrl: import.meta.env.PAYLOAD_API_URL || 'http://localhost:3158/api',
+})
+
+const siteSettings = await payload.getSiteSettings()
+const siteUrl = import.meta.env.SITE_URL || 'https://example.com'
+---
+
+<SEOLayout
+  title={`Contact Us | ${siteSettings.siteName}`}
+  description={`Get in touch with ${siteSettings.siteName}. Call ${siteSettings.phone || 'us'} or fill out our contact form.`}
+  canonicalUrl={`${siteUrl}/contact`}
+  pageType="page"
+  schemaData={{ title: 'Contact Us', slug: 'contact' }}
+>
+  <div class="container max-w-3xl mx-auto px-4 py-12">
+    <h1 class="text-4xl font-bold mb-8">Contact Us</h1>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+      <div>
+        <h2 class="text-xl font-semibold mb-4">Get in Touch</h2>
+        {siteSettings.phone && (
+          <p class="mb-2">
+            <strong>Phone:</strong>{' '}
+            <a href={`tel:${siteSettings.phone}`} class="text-primary hover:underline">{siteSettings.phone}</a>
+          </p>
+        )}
+        {siteSettings.email && (
+          <p class="mb-2">
+            <strong>Email:</strong>{' '}
+            <a href={`mailto:${siteSettings.email}`} class="text-primary hover:underline">{siteSettings.email}</a>
+          </p>
+        )}
+        {siteSettings.address && (
+          <address class="not-italic mt-4 text-muted-foreground">
+            {siteSettings.address.street && <span>{siteSettings.address.street}<br /></span>}
+            {siteSettings.address.city}, {siteSettings.address.stateCode} {siteSettings.address.zip}
+          </address>
+        )}
+      </div>
+      <div>
+        <h2 class="text-xl font-semibold mb-4">Send a Message</h2>
+        <p class="text-muted-foreground">Contact form coming soon.</p>
+      </div>
+    </div>
+  </div>
+</SEOLayout>

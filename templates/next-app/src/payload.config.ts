@@ -4,7 +4,12 @@ import { buildConfig } from 'payload'
 import { postgresAdapter } from '@payloadcms/db-postgres'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import { resendAdapter } from '@payloadcms/email-resend'
-import { Contacts, Pages, Media, Users } from './collections'
+import {
+  Contacts, Pages, Media, Users,
+  Services, Locations, ServicePages,
+  BlogPosts, FAQs, Testimonials, TeamMembers,
+} from './collections'
+import { SiteSettings } from './globals/SiteSettings'
 import { getPlugins } from './plugins'
 import { twentyWebhookHandler } from './webhooks/twenty-handler'
 import { resendWebhookHandler } from './webhooks/resend-handler'
@@ -18,17 +23,19 @@ export default buildConfig({
       baseDir: path.resolve(dirname),
     },
     user: 'users',
+    components: {
+      afterDashboard: ['/src/components/DeployButton'],
+    },
     livePreview: {
       url: ({ data, collectionConfig, locale }) => {
-        const baseUrl = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3100'
+        const astroUrl = process.env.PUBLIC_ASTRO_URL || 'http://localhost:4400'
         const slug = (data as any)?.slug || ''
-        const localeParam = locale?.code && locale.code !== 'en' ? `?locale=${locale.code}` : ''
-        if (collectionConfig?.slug === 'pages') {
-          return `${baseUrl}/${slug}${localeParam}`
-        }
-        return baseUrl
+        const collection = collectionConfig?.slug || ''
+        const localeParam = locale?.code && locale.code !== 'en' ? `&locale=${locale.code}` : ''
+        const token = process.env.PREVIEW_SECRET || ''
+        return `${astroUrl}/preview?collection=${collection}&slug=${slug}&token=${token}${localeParam}`
       },
-      collections: ['pages'],
+      collections: ['pages', 'services', 'locations', 'service-pages', 'blog-posts'],
       breakpoints: [
         { label: 'Mobile', name: 'mobile', width: 375, height: 667 },
         { label: 'Tablet', name: 'tablet', width: 768, height: 1024 },
@@ -46,7 +53,12 @@ export default buildConfig({
     fallback: true,
   },
   serverURL: process.env.NEXT_PUBLIC_SERVER_URL || '',
-  collections: [Pages, Media, Users, ...(process.env.TWENTY_API_URL ? [Contacts] : [])],
+  collections: [
+    Pages, Media, Users, Services, Locations, ServicePages,
+    BlogPosts, FAQs, Testimonials, TeamMembers,
+    ...(process.env.TWENTY_API_URL ? [Contacts] : []),
+  ],
+  globals: [SiteSettings],
   plugins: getPlugins(),
   endpoints: [
     ...(process.env.TWENTY_API_URL && process.env.TWENTY_WEBHOOK_SECRET ? [{

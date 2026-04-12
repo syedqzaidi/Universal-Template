@@ -1,0 +1,17 @@
+---
+import type { Location } from '@template/shared/payload/types'
+
+interface Props {
+  location: Location
+}
+
+const { location } = Astro.props
+---
+
+<article class="border rounded-lg p-6 hover:shadow-lg transition-shadow">
+  <span class="text-xs font-medium uppercase tracking-wider text-primary">{location.type}</span>
+  <h3 class="text-xl font-semibold mt-2">
+    <a href={`/locations/${location.slug}`} class="hover:text-primary transition-colors">{location.displayName}</a>
+  </h3>
+  {location.areaInfo && <p class="text-muted-foreground mt-2 line-clamp-2">{location.areaInfo}</p>}
+</article>

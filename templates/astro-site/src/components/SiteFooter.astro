@@ -1,0 +1,84 @@
+---
+// src/components/SiteFooter.astro
+import { createPayloadClient } from '@template/shared/payload'
+
+const payload = createPayloadClient({
+  apiUrl: import.meta.env.PAYLOAD_API_URL || 'http://localhost:3158/api',
+})
+
+const { docs: locations } = await payload.getAllLocations({ sort: 'displayName', limit: '20' })
+const siteSettings = await payload.getSiteSettings()
+const currentYear = new Date().getFullYear()
+---
+
+<footer class="border-t bg-muted/50 mt-auto">
+  <div class="container py-12">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+      <!-- Brand and contact -->
+      <div>
+        <p class="font-bold text-lg">{siteSettings.siteName}</p>
+        {siteSettings.tagline && <p class="text-muted-foreground mt-1">{siteSettings.tagline}</p>}
+        {siteSettings.address && (
+          <address class="mt-4 not-italic text-sm text-muted-foreground">
+            {siteSettings.address.street && <span>{siteSettings.address.street}<br /></span>}
+            {siteSettings.address.city}, {siteSettings.address.stateCode} {siteSettings.address.zip}
+          </address>
+        )}
+        {siteSettings.phone && (
+          <a href={`tel:${siteSettings.phone}`} class="block mt-2 text-sm font-medium">{siteSettings.phone}</a>
+        )}
+        {siteSettings.email && (
+          <a href={`mailto:${siteSettings.email}`} class="block mt-1 text-sm text-muted-foreground">{siteSettings.email}</a>
+        )}
+      </div>
+
+      <!-- Locations -->
+      <div>
+        <p class="font-semibold mb-3">Locations</p>
+        <nav aria-label="Footer navigation - Locations">
+          <ul class="space-y-2 text-sm">
+            {locations.map((location) => (
+              <li><a href={`/locations/${location.slug}`} class="text-muted-foreground hover:text-foreground transition-colors">{location.displayName}</a></li>
+            ))}
+          </ul>
+        </nav>
+      </div>
+
+      <!-- Quick links -->
+      <div>
+        <p class="font-semibold mb-3">Company</p>
+        <nav aria-label="Footer navigation - Company">
+          <ul class="space-y-2 text-sm">
+            <li><a href="/team" class="text-muted-foreground hover:text-foreground">Our Team</a></li>
+            <li><a href="/blog" class="text-muted-foreground hover:text-foreground">Blog</a></li>
+            <li><a href="/faq" class="text-muted-foreground hover:text-foreground">FAQ</a></li>
+            <li><a href="/contact" class="text-muted-foreground hover:text-foreground">Contact</a></li>
+            <li><a href="/privacy" class="text-muted-foreground hover:text-foreground">Privacy Policy</a></li>
+            <li><a href="/terms" class="text-muted-foreground hover:text-foreground">Terms of Service</a></li>
+          </ul>
+        </nav>
+      </div>
+
+      <!-- Social links -->
+      <div>
+        {siteSettings.socialLinks && siteSettings.socialLinks.length > 0 && (
+          <>
+            <p class="font-semibold mb-3">Follow Us</p>
+            <div class="flex gap-3">
+              {siteSettings.socialLinks.map((social) => (
+                <a href={social.url} target="_blank" rel="noopener noreferrer" class="text-muted-foreground hover:text-foreground transition-colors" aria-label={social.platform}>
+                  {social.platform}
+                </a>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+
+    <div class="border-t mt-8 pt-8 text-center text-sm text-muted-foreground">
+      <p>&copy; {currentYear} {siteSettings.siteName}. All rights reserved.</p>
+      {siteSettings.footerText && <p class="mt-2">{siteSettings.footerText}</p>}
+    </div>
+  </div>
+</footer>

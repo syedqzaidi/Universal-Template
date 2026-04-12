@@ -1,0 +1,93 @@
+---
+import SEOLayout from '../../layouts/SEOLayout.astro'
+import { createPayloadClient } from '@template/shared/payload'
+
+const payload = createPayloadClient({
+  apiUrl: import.meta.env.PAYLOAD_API_URL || 'http://localhost:3158/api',
+})
+
+const [siteSettings, { docs: posts }] = await Promise.all([
+  payload.getSiteSettings(),
+  payload.getAllBlogPosts(),
+])
+
+const siteUrl = import.meta.env.SITE_URL || 'https://example.com'
+
+// Client-side pagination: render all posts but show 12 at a time
+const POSTS_PER_PAGE = 12
+const totalPages = Math.ceil(posts.length / POSTS_PER_PAGE)
+---
+
+<SEOLayout
+  title={`Blog | ${siteSettings.siteName}`}
+  description={`Latest news, tips, and insights from ${siteSettings.siteName}.`}
+  canonicalUrl={`${siteUrl}/blog`}
+  pageType="page"
+  schemaData={{ title: 'Blog', slug: 'blog' }}
+>
+  <div class="container mx-auto px-4 py-12">
+    <h1 class="text-4xl font-bold mb-8">Blog</h1>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="blog-grid">
+      {posts.map((post, index) => (
+        <article class:list={['border rounded-lg overflow-hidden hover:shadow-lg transition-shadow', { 'hidden': index >= POSTS_PER_PAGE }]} data-blog-item>
+          {typeof post.featuredImage === 'object' && post.featuredImage?.sizes?.card?.url && (
+            <img src={post.featuredImage.sizes.card.url} alt={post.featuredImage.alt} class="w-full h-48 object-cover" loading="lazy" />
+          )}
+          <div class="p-6">
+            {post.category && (
+              <span class="text-xs font-medium uppercase tracking-wider text-primary">{post.category.replace('-', ' ')}</span>
+            )}
+            <h2 class="text-xl font-semibold mt-2">
+              <a href={`/blog/${post.slug}`} class="hover:text-primary transition-colors">{post.title}</a>
+            </h2>
+            {post.excerpt && <p class="text-muted-foreground mt-2 line-clamp-3">{post.excerpt}</p>}
+            {post.publishedAt && (
+              <time datetime={post.publishedAt} class="text-sm text-muted-foreground mt-4 block">
+                {new Date(post.publishedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+              </time>
+            )}
+          </div>
+        </article>
+      ))}
+    </div>
+
+    {posts.length === 0 && (
+      <p class="text-muted-foreground text-center py-12">No blog posts yet. Check back soon.</p>
+    )}
+
+    {totalPages > 1 && (
+      <nav aria-label="Blog pagination" class="mt-12 flex justify-center gap-2" id="blog-pagination">
+        <button class="px-4 py-2 border rounded-lg disabled:opacity-50" data-prev disabled>Previous</button>
+        <span class="px-4 py-2" data-page-info>Page 1 of {totalPages}</span>
+        <button class="px-4 py-2 border rounded-lg disabled:opacity-50" data-next>Next</button>
+      </nav>
+    )}
+  </div>
+</SEOLayout>
+
+{totalPages > 1 && (
+  <script define:vars={{ POSTS_PER_PAGE, totalPages }}>
+    let currentPage = 1
+    const items = document.querySelectorAll('[data-blog-item]')
+    const prevBtn = document.querySelector('[data-prev]')
+    const nextBtn = document.querySelector('[data-next]')
+    const pageInfo = document.querySelector('[data-page-info]')
+
+    function showPage(page) {
+      currentPage = page
+      const start = (page - 1) * POSTS_PER_PAGE
+      const end = start + POSTS_PER_PAGE
+      items.forEach((item, i) => {
+        item.classList.toggle('hidden', i < start || i >= end)
+      })
+      prevBtn.disabled = page <= 1
+      nextBtn.disabled = page >= totalPages
+      pageInfo.textContent = `Page ${page} of ${totalPages}`
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+
+    prevBtn?.addEventListener('click', () => showPage(currentPage - 1))
+    nextBtn?.addEventListener('click', () => showPage(currentPage + 1))
+  </script>
+)}

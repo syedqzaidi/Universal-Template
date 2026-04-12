@@ -1,0 +1,27 @@
+---
+import PayloadImage from '../PayloadImage.astro'
+interface Props { data: any; context?: Record<string, any>; headingLevel?: 2 | 3 | 4 }
+const { data, context = {}, headingLevel = 2 } = Astro.props
+const HeadingTag = `h${headingLevel}` as any
+const layout = data.layout || 'grid'
+const columns = data.columns || 3
+---
+<section class="py-12 px-4">
+  <div class="container mx-auto">
+    {data.heading && <HeadingTag class="text-3xl font-bold mb-8">{data.heading}</HeadingTag>}
+    <div class:list={[{
+      [`grid gap-4`]: layout === 'grid',
+      'columns-2 md:columns-3 gap-4 space-y-4': layout === 'masonry',
+      'flex gap-4 overflow-x-auto snap-x snap-mandatory': layout === 'carousel',
+    }]} style={layout === 'grid' ? `grid-template-columns: repeat(${columns}, 1fr)` : undefined}>
+      {(data.images || []).map((item: any) => (
+        <figure class:list={[{ 'snap-start flex-shrink-0 w-80': layout === 'carousel', 'break-inside-avoid': layout === 'masonry' }]}>
+          {typeof item.image === 'object' && (
+            <PayloadImage image={item.image} size="gallery" class="rounded-lg w-full" />
+          )}
+          {item.caption && <figcaption class="text-sm text-muted-foreground mt-2">{item.caption}</figcaption>}
+        </figure>
+      ))}
+    </div>
+  </div>
+</section>

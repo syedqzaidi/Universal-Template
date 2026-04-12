@@ -26,8 +26,8 @@ export function getPlugins(): Plugin[] {
 
   plugins.push(
     nestedDocsPlugin({
-      collections: ['pages'],
-      generateLabel: (_, doc) => doc.title as string,
+      collections: ['pages', 'services'],
+      generateLabel: (_, doc) => String((doc as any).title || (doc as any).name),
       generateURL: (docs) =>
         docs.reduce((url, doc) => `${url}/${doc.slug}`, ''),
     }),
@@ -35,7 +35,7 @@ export function getPlugins(): Plugin[] {
 
   plugins.push(
     seoPlugin({
-      collections: ['pages'],
+      collections: ['pages', 'services', 'locations', 'service-pages', 'blog-posts'],
       uploadsCollection: 'media',
       tabbedUI: true,
 
@@ -99,7 +99,7 @@ export function getPlugins(): Plugin[] {
 
   plugins.push(
     redirectsPlugin({
-      collections: ['pages'],
+      collections: ['pages', 'services', 'locations', 'service-pages', 'blog-posts'],
       redirectTypes: ['301', '302'],
       overrides: {
         admin: { group: 'Content' },
@@ -109,9 +109,13 @@ export function getPlugins(): Plugin[] {
 
   plugins.push(
     searchPlugin({
-      collections: ['pages'],
+      collections: ['pages', 'services', 'locations', 'service-pages', 'blog-posts'],
       defaultPriorities: {
         pages: 10,
+        services: 20,
+        locations: 30,
+        'service-pages': 10,
+        'blog-posts': 40,
       },
       syncDrafts: false,
       deleteDrafts: true,
@@ -203,6 +207,13 @@ export function getPlugins(): Plugin[] {
       collections: [
         { slug: 'pages' },
         { slug: 'media' },
+        { slug: 'services' },
+        { slug: 'locations' },
+        { slug: 'service-pages' },
+        { slug: 'blog-posts' },
+        { slug: 'faqs' },
+        { slug: 'testimonials' },
+        { slug: 'team-members' },
       ],
     }),
   )

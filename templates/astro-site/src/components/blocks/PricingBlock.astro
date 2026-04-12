@@ -1,0 +1,37 @@
+---
+interface Props { data: any; context?: Record<string, any>; headingLevel?: 2 | 3 | 4 }
+const { data, context = {}, headingLevel = 2 } = Astro.props
+const HeadingTag = `h${headingLevel}` as any
+---
+<section class="py-12 px-4">
+  <div class="container mx-auto">
+    {data.heading && <HeadingTag class="text-3xl font-bold mb-2 text-center">{data.heading}</HeadingTag>}
+    {data.subheading && <p class="text-muted-foreground text-center mb-8">{data.subheading}</p>}
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+      {(data.tiers || []).map((tier: any) => (
+        <div class:list={['border rounded-lg p-6', { 'border-primary border-2 relative': tier.highlighted }]}>
+          {tier.highlighted && <span class="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-full">Popular</span>}
+          <h3 class="text-xl font-semibold">{tier.name}</h3>
+          <p class="text-3xl font-bold mt-2">{tier.price}<span class="text-sm font-normal text-muted-foreground">{tier.unit}</span></p>
+          {tier.description && <p class="text-muted-foreground mt-2">{tier.description}</p>}
+          {tier.features && (
+            <ul class="mt-4 space-y-2">
+              {tier.features.map((f: any) => (
+                <li class="flex items-center gap-2 text-sm">
+                  <span class={f.included ? 'text-green-500' : 'text-muted-foreground line-through'}>{f.included ? '✓' : '✗'}</span>
+                  {f.feature}
+                </li>
+              ))}
+            </ul>
+          )}
+          {tier.ctaLink && (
+            <a href={tier.ctaLink} class="block mt-6 text-center px-6 py-2 bg-primary text-primary-foreground rounded-lg font-semibold">
+              {tier.ctaText || 'Get Started'}
+            </a>
+          )}
+        </div>
+      ))}
+    </div>
+    {data.disclaimer && <p class="text-sm text-muted-foreground text-center mt-6">{data.disclaimer}</p>}
+  </div>
+</section>

@@ -1,0 +1,85 @@
+---
+interface Props {
+  content: any  // Lexical JSON
+  class?: string
+}
+
+const { content, class: className } = Astro.props
+
+// HTML-escape text content to prevent XSS injection
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+// Validate URL protocol -- only allow safe protocols to prevent javascript: XSS
+const ALLOWED_PROTOCOLS = ['http:', 'https:', 'mailto:', 'tel:']
+function isSafeUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url, 'https://placeholder.invalid')
+    return ALLOWED_PROTOCOLS.includes(parsed.protocol)
+  } catch {
+    // Relative URLs are safe (they resolve against the page origin)
+    return !url.startsWith('javascript:') && !url.startsWith('data:')
+  }
+}
+
+// NOTE: For production deployments, consider using a sanitizer library
+// (e.g., DOMPurify or sanitize-html) for defense-in-depth against XSS.
+
+function renderNode(node: any): string {
+  if (!node) return ''
+
+  switch (node.type) {
+    case 'root':
+      return (node.children || []).map(renderNode).join('')
+    case 'paragraph':
+      const pContent = (node.children || []).map(renderNode).join('')
+      return pContent ? `<p>${pContent}</p>` : ''
+    case 'heading': {
+      const tag = `h${node.tag || '2'}`
+      return `<${tag}>${(node.children || []).map(renderNode).join('')}</${tag}>`
+    }
+    case 'text': {
+      let text = escapeHtml(node.text || '')
+      if (node.format & 1) text = `<strong>${text}</strong>`  // bold
+      if (node.format & 2) text = `<em>${text}</em>`          // italic
+      if (node.format & 4) text = `<s>${text}</s>`            // strikethrough
+      if (node.format & 8) text = `<u>${text}</u>`            // underline
+      if (node.format & 16) text = `<code>${text}</code>`     // code
+      if (node.format & 32) text = `<sub>${text}</sub>`       // subscript
+      if (node.format & 64) text = `<sup>${text}</sup>`       // superscript
+      return text
+    }
+    case 'link': {
+      const href = node.fields?.url || '#'
+      if (!isSafeUrl(href)) return (node.children || []).map(renderNode).join('')
+      return `<a href="${escapeHtml(href)}" ${node.fields?.newTab ? 'target="_blank" rel="noopener noreferrer"' : ''}>${(node.children || []).map(renderNode).join('')}</a>`
+    }
+    case 'list':
+      const tag = node.listType === 'number' ? 'ol' : 'ul'
+      return `<${tag}>${(node.children || []).map(renderNode).join('')}</${tag}>`
+    case 'listitem':
+      return `<li>${(node.children || []).map(renderNode).join('')}</li>`
+    case 'quote':
+      return `<blockquote>${(node.children || []).map(renderNode).join('')}</blockquote>`
+    case 'upload': {
+      const img = node.value
+      if (img?.url) {
+        return `<figure><img src="${escapeHtml(img.url)}" alt="${escapeHtml(img.alt || '')}" loading="lazy" />${img.caption ? `<figcaption>${escapeHtml(img.caption)}</figcaption>` : ''}</figure>`
+      }
+      return ''
+    }
+    default:
+      return (node.children || []).map(renderNode).join('')
+  }
+}
+
+const html = content?.root ? renderNode(content.root) : ''
+---
+
+{html && <div class:list={['prose prose-lg max-w-none', className]} set:html={html} />}

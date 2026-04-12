@@ -1,0 +1,101 @@
+---
+import '../styles/global.css'
+import SiteHeader from '../components/SiteHeader.astro'
+import SiteFooter from '../components/SiteFooter.astro'
+import { generateSchemas } from '../lib/seo'
+import { createPayloadClient } from '@template/shared/payload'
+
+let _cachedSiteSettings: any = null
+async function getCachedSiteSettings() {
+  if (_cachedSiteSettings) return _cachedSiteSettings
+  const client = createPayloadClient({
+    apiUrl: import.meta.env.PAYLOAD_API_URL || 'http://localhost:3158/api',
+  })
+  _cachedSiteSettings = await client.getSiteSettings()
+  return _cachedSiteSettings
+}
+
+const siteSettings = await getCachedSiteSettings()
+
+interface Props {
+  title: string
+  description?: string
+  ogImage?: string
+  ogTitle?: string
+  canonicalUrl?: string
+  pageType?: 'home' | 'service' | 'location' | 'service-location' | 'blog' | 'page' | 'team' | 'faq'
+  schemaData?: any
+  noindex?: boolean
+  locale?: string
+  alternateLocales?: Array<{ code: string; url: string }>
+}
+
+const {
+  title,
+  description = '',
+  ogImage,
+  ogTitle,
+  canonicalUrl,
+  pageType = 'page',
+  schemaData,
+  noindex = false,
+  locale = 'en',
+  alternateLocales = [],
+} = Astro.props
+
+const siteUrl = import.meta.env.SITE_URL || 'https://example.com'
+const fullOgImage = ogImage?.startsWith('http') ? ogImage : ogImage ? `${siteUrl}${ogImage}` : undefined
+const schemas = schemaData ? generateSchemas(pageType, schemaData, siteUrl, siteSettings) : []
+---
+
+<html lang={locale}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <title>{title}</title>
+    {description && <meta name="description" content={description.substring(0, 160)} />}
+    {canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
+    {noindex
+      ? <meta name="robots" content="noindex, nofollow" />
+      : <meta name="robots" content="index, follow" />
+    }
+
+    <meta property="og:type" content={pageType === 'blog' ? 'article' : 'website'} />
+    <meta property="og:title" content={ogTitle || title} />
+    {description && <meta property="og:description" content={description.substring(0, 160)} />}
+    {fullOgImage && <meta property="og:image" content={fullOgImage} />}
+    {canonicalUrl && <meta property="og:url" content={canonicalUrl} />}
+    <meta property="og:site_name" content={title.split(' | ').pop() || 'Site'} />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={ogTitle || title} />
+    {description && <meta name="twitter:description" content={description.substring(0, 160)} />}
+    {fullOgImage && <meta name="twitter:image" content={fullOgImage} />}
+
+    {alternateLocales.map(({ code, url }) => (
+      <link rel="alternate" hreflang={code} href={url} />
+    ))}
+    {alternateLocales.length > 0 && canonicalUrl && (
+      <link rel="alternate" hreflang={locale} href={canonicalUrl} />
+    )}
+    {alternateLocales.length > 0 && canonicalUrl && (
+      <link rel="alternate" hreflang="x-default" href={canonicalUrl} />
+    )}
+
+    {schemas.map((schema) => (
+      <script type="application/ld+json" set:html={JSON.stringify(schema)} />
+    ))}
+  </head>
+  <body class="min-h-screen bg-background text-foreground antialiased">
+    <SiteHeader />
+    <main>
+      <article>
+        <slot />
+      </article>
+    </main>
+    <SiteFooter />
+  </body>
+</html>

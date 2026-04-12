@@ -1,0 +1,28 @@
+---
+import RichText from '../RichText.astro'
+import PayloadImage from '../PayloadImage.astro'
+interface Props { data: any; context?: Record<string, any>; headingLevel?: 2 | 3 | 4 }
+const { data, context = {}, headingLevel = 2 } = Astro.props
+const HeadingTag = `h${headingLevel}` as any
+const pos = data.imagePosition || 'none'
+---
+<section class="py-12 px-4">
+  <div class="container mx-auto max-w-4xl">
+    {data.heading && <HeadingTag class="text-3xl font-bold mb-6">{data.heading}</HeadingTag>}
+    <div class:list={[{
+      'flex flex-row gap-8': pos === 'left',
+      'flex flex-row-reverse gap-8': pos === 'right',
+      'flex flex-col gap-6': pos === 'above',
+      'flex flex-col-reverse gap-6': pos === 'below',
+    }]}>
+      {pos !== 'none' && typeof data.image === 'object' && (
+        <div class="flex-shrink-0 w-full md:w-1/2">
+          <PayloadImage image={data.image} size="card" class="rounded-lg w-full" />
+        </div>
+      )}
+      <div class:list={[{ 'flex-1': pos !== 'none' }]}>
+        <RichText content={data.content} />
+      </div>
+    </div>
+  </div>
+</section>

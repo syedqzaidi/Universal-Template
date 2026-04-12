@@ -1,0 +1,54 @@
+---
+import SEOLayout from '../../../layouts/SEOLayout.astro'
+import BlockRenderer from '../../../components/blocks/BlockRenderer.astro'
+import { createPayloadClient } from '@template/shared/payload'
+
+const payload = createPayloadClient({
+  apiUrl: import.meta.env.PAYLOAD_API_URL || 'http://localhost:3158/api',
+})
+
+export async function getStaticPaths() {
+  const payload = createPayloadClient({
+    apiUrl: import.meta.env.PAYLOAD_API_URL || 'http://localhost:3158/api',
+  })
+  const allPaths: { params: { service: string; city: string } }[] = []
+  let page = 1
+  let hasMore = true
+
+  while (hasMore) {
+    const result = await payload.fetchPaginated<any>('service-pages', page, 1000, {
+      'where[_status][equals]': 'published',
+    })
+    allPaths.push(...result.docs.map((sp: any) => ({
+      params: {
+        service: typeof sp.service === 'object' ? sp.service.slug : '',
+        city: typeof sp.location === 'object' ? sp.location.slug : '',
+      },
+    })))
+    hasMore = result.hasNextPage
+    page++
+  }
+
+  return allPaths
+}
+
+const { service: serviceSlug, city: citySlug } = Astro.params
+const page = await payload.getServicePage(serviceSlug!, citySlug!)
+
+if (!page) return Astro.redirect('/404')
+
+const siteUrl = import.meta.env.SITE_URL || 'https://example.com'
+const service = typeof page.service === 'object' ? page.service : null
+const location = typeof page.location === 'object' ? page.location : null
+---
+
+<SEOLayout
+  title={page.seoTitle || page.meta?.title || page.title}
+  description={page.seoDescription || page.meta?.description || `${service?.name} services in ${location?.displayName}`}
+  ogImage={typeof service?.featuredImage === 'object' ? service.featuredImage?.sizes?.og?.url : undefined}
+  canonicalUrl={`${siteUrl}/services/${serviceSlug}/${citySlug}`}
+  pageType="service-location"
+  schemaData={{ page, service, location }}
+>
+  <BlockRenderer blocks={page.layout || []} context={{ service, location, page }} />
+</SEOLayout>

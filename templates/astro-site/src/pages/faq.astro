@@ -1,0 +1,76 @@
+---
+import SEOLayout from '../layouts/SEOLayout.astro'
+import { createPayloadClient } from '@template/shared/payload'
+
+const payload = createPayloadClient({
+  apiUrl: import.meta.env.PAYLOAD_API_URL || 'http://localhost:3158/api',
+})
+
+const [siteSettings, { docs: faqs }, { docs: services }] = await Promise.all([
+  payload.getSiteSettings(),
+  payload.getFAQs(),
+  payload.getAllServices({ sort: 'name' }),
+])
+
+const siteUrl = import.meta.env.SITE_URL || 'https://example.com'
+
+// Group FAQs by service
+const globalFaqs = faqs.filter((faq) => !faq.service)
+const byService = services
+  .map((svc) => ({
+    service: svc,
+    faqs: faqs.filter((faq) => {
+      const faqServiceId = typeof faq.service === 'object' ? faq.service?.id : faq.service
+      return faqServiceId === svc.id
+    }),
+  }))
+  .filter((g) => g.faqs.length > 0)
+---
+
+<SEOLayout
+  title={`Frequently Asked Questions | ${siteSettings.siteName}`}
+  description={`Find answers to common questions about ${siteSettings.siteName}'s services.`}
+  canonicalUrl={`${siteUrl}/faq`}
+  pageType="faq"
+  schemaData={{ faqs }}
+>
+  <div class="container max-w-3xl mx-auto px-4 py-12">
+    <h1 class="text-4xl font-bold mb-8">Frequently Asked Questions</h1>
+
+    {globalFaqs.length > 0 && (
+      <section class="mb-12">
+        <h2 class="text-2xl font-semibold mb-6">General</h2>
+        <dl class="space-y-4">
+          {globalFaqs.map((faq) => (
+            <details class="border rounded-lg">
+              <summary class="px-6 py-4 cursor-pointer font-medium hover:bg-muted/50 transition-colors">
+                {faq.question}
+              </summary>
+              <dd class="px-6 pb-4 text-muted-foreground">
+                {typeof faq.answer === 'string' ? faq.answer : 'See details'}
+              </dd>
+            </details>
+          ))}
+        </dl>
+      </section>
+    )}
+
+    {byService.map(({ service, faqs: svcFaqs }) => (
+      <section class="mb-12">
+        <h2 class="text-2xl font-semibold mb-6">{service.name}</h2>
+        <dl class="space-y-4">
+          {svcFaqs.map((faq) => (
+            <details class="border rounded-lg">
+              <summary class="px-6 py-4 cursor-pointer font-medium hover:bg-muted/50 transition-colors">
+                {faq.question}
+              </summary>
+              <dd class="px-6 pb-4 text-muted-foreground">
+                {typeof faq.answer === 'string' ? faq.answer : 'See details'}
+              </dd>
+            </details>
+          ))}
+        </dl>
+      </section>
+    ))}
+  </div>
+</SEOLayout>

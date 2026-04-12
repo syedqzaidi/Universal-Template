@@ -1,0 +1,50 @@
+---
+import SEOLayout from '../../layouts/SEOLayout.astro'
+import RichText from '../../components/RichText.astro'
+import { createPayloadClient } from '@template/shared/payload'
+
+const payload = createPayloadClient({
+  apiUrl: import.meta.env.PAYLOAD_API_URL || 'http://localhost:3158/api',
+})
+
+export async function getStaticPaths() {
+  const payload = createPayloadClient({
+    apiUrl: import.meta.env.PAYLOAD_API_URL || 'http://localhost:3158/api',
+  })
+  const { docs: posts } = await payload.getAllBlogPosts()
+  return posts.map((post) => ({
+    params: { slug: post.slug },
+  }))
+}
+
+const { slug } = Astro.params
+const post = await payload.getBlogPostBySlug(slug!)
+
+if (!post) return Astro.redirect('/404')
+
+const siteUrl = import.meta.env.SITE_URL || 'https://example.com'
+const author = typeof post.author === 'object' ? post.author : null
+const authorName = post.authorOverride || author?.name || 'Staff'
+---
+
+<SEOLayout
+  title={post.seoTitle || post.meta?.title || post.title}
+  description={post.seoDescription || post.meta?.description || post.excerpt || ''}
+  ogImage={typeof post.featuredImage === 'object' ? post.featuredImage?.sizes?.og?.url : undefined}
+  canonicalUrl={`${siteUrl}/blog/${post.slug}`}
+  pageType="blog"
+  schemaData={post}
+>
+  <div class="container max-w-3xl mx-auto px-4 py-12">
+    <h1 class="text-4xl font-bold mb-4">{post.title}</h1>
+    <div class="flex items-center gap-4 text-muted-foreground mb-8">
+      <span>By {authorName}</span>
+      {post.publishedAt && (
+        <time datetime={post.publishedAt}>
+          {new Date(post.publishedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+        </time>
+      )}
+    </div>
+    <RichText content={post.content} />
+  </div>
+</SEOLayout>

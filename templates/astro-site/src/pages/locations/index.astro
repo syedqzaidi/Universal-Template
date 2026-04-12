@@ -1,0 +1,50 @@
+---
+import SEOLayout from '../../layouts/SEOLayout.astro'
+import LocationCard from '../../components/LocationCard.astro'
+import { createPayloadClient } from '@template/shared/payload'
+
+const payload = createPayloadClient({
+  apiUrl: import.meta.env.PAYLOAD_API_URL || 'http://localhost:3158/api',
+})
+
+const [siteSettings, { docs: locations }] = await Promise.all([
+  payload.getSiteSettings(),
+  payload.getAllLocations({ sort: 'displayName' }),
+])
+
+const siteUrl = import.meta.env.SITE_URL || 'https://example.com'
+
+const byState = locations.reduce<Record<string, typeof locations>>((acc, loc) => {
+  const state = loc.state || 'Other'
+  if (!acc[state]) acc[state] = []
+  acc[state].push(loc)
+  return acc
+}, {})
+---
+
+<SEOLayout
+  title={`Service Areas | ${siteSettings.siteName}`}
+  description={`${siteSettings.siteName} serves ${locations.length} locations. Find services in your area.`}
+  canonicalUrl={`${siteUrl}/locations`}
+  pageType="page"
+  schemaData={{ title: 'Service Areas', slug: 'locations' }}
+>
+  <div class="container mx-auto px-4 py-12">
+    <h1 class="text-4xl font-bold mb-8">Service Areas</h1>
+
+    {Object.entries(byState).sort().map(([state, locs]) => (
+      <section class="mb-12">
+        <h2 class="text-2xl font-semibold mb-6">{state}</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {locs.map((location) => (
+            <LocationCard location={location} />
+          ))}
+        </div>
+      </section>
+    ))}
+
+    {locations.length === 0 && (
+      <p class="text-muted-foreground text-center py-12">No locations available yet.</p>
+    )}
+  </div>
+</SEOLayout>

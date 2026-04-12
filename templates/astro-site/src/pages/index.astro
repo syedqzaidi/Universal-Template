@@ -1,9 +1,97 @@
 ---
-import Layout from '../layouts/Layout.astro';
+import SEOLayout from '../layouts/SEOLayout.astro'
+import ServiceCard from '../components/ServiceCard.astro'
+import TestimonialCard from '../components/TestimonialCard.astro'
+import { createPayloadClient } from '@template/shared/payload'
+
+const payload = createPayloadClient({
+  apiUrl: import.meta.env.PAYLOAD_API_URL || 'http://localhost:3158/api',
+})
+
+const [
+  siteSettings,
+  { docs: services },
+  { docs: blogPosts },
+  { docs: testimonials },
+] = await Promise.all([
+  payload.getSiteSettings(),
+  payload.getAllServices({ limit: '6', sort: 'name' }),
+  payload.getAllBlogPosts({ limit: '3' }),
+  payload.getFeaturedTestimonials(),
+])
+
+const siteUrl = import.meta.env.SITE_URL || 'https://example.com'
 ---
 
-<Layout title="Home">
-  <main class="flex min-h-screen items-center justify-center">
-    <h1 class="text-4xl font-bold">Astro Site</h1>
-  </main>
-</Layout>
+<SEOLayout
+  title={`${siteSettings.siteName} | ${siteSettings.tagline || 'Home'}`}
+  description={siteSettings.tagline || ''}
+  canonicalUrl={siteUrl}
+  pageType="home"
+  schemaData={{ settings: siteSettings, testimonials }}
+>
+  <h1 class="sr-only">{siteSettings.siteName}</h1>
+
+  <!-- Featured Services -->
+  {services.length > 0 && (
+    <section class="container mx-auto px-4 py-16">
+      <h2 class="text-3xl font-bold mb-8 text-center">Our Services</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {services.map((service) => (
+          <ServiceCard service={service} />
+        ))}
+      </div>
+      <div class="text-center mt-8">
+        <a href="/services" class="text-primary font-semibold hover:underline">View All Services</a>
+      </div>
+    </section>
+  )}
+
+  <!-- Featured Testimonials -->
+  {testimonials.length > 0 && (
+    <section class="bg-muted/50 py-16">
+      <div class="container mx-auto px-4">
+        <h2 class="text-3xl font-bold mb-8 text-center">What Our Customers Say</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {testimonials.map((testimonial) => (
+            <TestimonialCard testimonial={testimonial} />
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- Latest Blog Posts -->
+  {blogPosts.length > 0 && (
+    <section class="container mx-auto px-4 py-16">
+      <h2 class="text-3xl font-bold mb-8 text-center">Latest from Our Blog</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        {blogPosts.map((post) => (
+          <article class="border rounded-lg overflow-hidden">
+            {typeof post.featuredImage === 'object' && post.featuredImage?.sizes?.card?.url && (
+              <img src={post.featuredImage.sizes.card.url} alt={post.featuredImage.alt} class="w-full h-48 object-cover" loading="lazy" />
+            )}
+            <div class="p-6">
+              <h3 class="text-lg font-semibold">
+                <a href={`/blog/${post.slug}`} class="hover:text-primary">{post.title}</a>
+              </h3>
+              {post.excerpt && <p class="text-muted-foreground mt-2 line-clamp-2">{post.excerpt}</p>}
+            </div>
+          </article>
+        ))}
+      </div>
+      <div class="text-center mt-8">
+        <a href="/blog" class="text-primary font-semibold hover:underline">Read More</a>
+      </div>
+    </section>
+  )}
+
+  <!-- CTA -->
+  <section class="bg-primary text-primary-foreground py-16 text-center">
+    <div class="container mx-auto px-4">
+      <h2 class="text-3xl font-bold mb-4">Ready to Get Started?</h2>
+      <p class="text-lg mb-8 opacity-90">Contact us today for a free consultation.</p>
+      <a href="/contact" class="px-8 py-3 bg-background text-foreground rounded-lg font-semibold inline-block">Contact Us</a>
+    </div>
+  </section>
+</SEOLayout>
