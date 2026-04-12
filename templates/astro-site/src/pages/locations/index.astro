@@ -1,7 +1,12 @@
 ---
+export const prerender = false
+
 import SEOLayout from '../../layouts/SEOLayout.astro'
 import LocationCard from '../../components/LocationCard.astro'
 import { payload } from '../../lib/payload'
+import { setCacheHeaders } from '../../lib/cache'
+
+setCacheHeaders(Astro)
 
 const [siteSettings, { docs: locations }] = await Promise.all([
   payload.getSiteSettings(),

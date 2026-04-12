@@ -80,11 +80,14 @@ export function createPayloadClient(config: PayloadClientConfig): PayloadClient 
     collection: string,
     slug: string,
     depth?: number,
+    draft?: boolean,
   ): Promise<T | null> {
-    const result = await fetchList<T>(collection, {
+    const params: Record<string, string> = {
       'where[slug][equals]': slug,
       depth: String(depth ?? defaultDepth),
-    })
+    }
+    if (draft) params.draft = 'true'
+    const result = await fetchList<T>(collection, params)
     return result.docs[0] ?? null
   }
 

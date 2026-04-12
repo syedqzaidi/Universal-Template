@@ -1,7 +1,12 @@
 ---
+export const prerender = false
+
 import SEOLayout from '../../layouts/SEOLayout.astro'
 import ServiceCard from '../../components/ServiceCard.astro'
 import { payload } from '../../lib/payload'
+import { setCacheHeaders } from '../../lib/cache'
+
+setCacheHeaders(Astro)
 
 const [siteSettings, { docs: services }] = await Promise.all([
   payload.getSiteSettings(),

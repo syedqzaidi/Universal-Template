@@ -1,29 +1,12 @@
 ---
+export const prerender = false
+
 import SEOLayout from '../../../layouts/SEOLayout.astro'
 import BlockRenderer from '../../../components/blocks/BlockRenderer.astro'
 import { payload } from '../../../lib/payload'
+import { setCacheHeaders } from '../../../lib/cache'
 
-export async function getStaticPaths() {
-  const allPaths: { params: { service: string; city: string } }[] = []
-  let page = 1
-  let hasMore = true
-
-  while (hasMore) {
-    const result = await payload.fetchPaginated<any>('service-pages', page, 1000, {
-      'where[_status][equals]': 'published',
-    })
-    allPaths.push(...result.docs.map((sp: any) => ({
-      params: {
-        service: typeof sp.service === 'object' ? sp.service.slug : '',
-        city: typeof sp.location === 'object' ? sp.location.slug : '',
-      },
-    })))
-    hasMore = result.hasNextPage
-    page++
-  }
-
-  return allPaths
-}
+setCacheHeaders(Astro)
 
 const { service: serviceSlug, city: citySlug } = Astro.params
 const page = await payload.getServicePage(serviceSlug!, citySlug!)

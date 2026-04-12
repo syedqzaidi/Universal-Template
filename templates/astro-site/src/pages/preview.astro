@@ -2,7 +2,7 @@
 export const prerender = false
 
 import SEOLayout from '../layouts/SEOLayout.astro'
-import BlockRenderer from '../components/blocks/BlockRenderer.astro'
+import LivePreview from '../components/LivePreview'
 import { payload } from '../lib/payload'
 
 const url = new URL(Astro.request.url)
@@ -19,25 +19,18 @@ if (!collection || !slug) {
   return new Response('Missing collection or slug', { status: 400 })
 }
 
-const doc = await payload.fetchBySlug(collection, slug, 2)
+const doc = await payload.fetchBySlug(collection, slug, 2, true)
 
 if (!doc) {
   return new Response('Document not found', { status: 404 })
 }
+
+const serverURL = import.meta.env.PAYLOAD_API_URL?.replace(/\/api\/?$/, '') || ''
 ---
 
 <SEOLayout title={`[PREVIEW] ${(doc as any).title || (doc as any).name || slug}`} noindex={true}>
   <div class="bg-yellow-100 border-b border-yellow-300 px-4 py-2 text-center text-sm font-medium text-yellow-800">
-    Preview Mode -- This page is not published
+    Preview Mode -- Editing in real-time
   </div>
-  <article>
-    <h1 class="text-4xl font-bold px-4 py-8 max-w-4xl mx-auto">
-      {(doc as any).title || (doc as any).name || (doc as any).displayName}
-    </h1>
-    {(doc as any).layout && (
-      <div class="max-w-4xl mx-auto px-4">
-        <BlockRenderer blocks={(doc as any).layout || []} context={{}} />
-      </div>
-    )}
-  </article>
+  <LivePreview client:load initialData={doc} serverURL={serverURL} />
 </SEOLayout>

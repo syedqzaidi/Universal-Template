@@ -1,15 +1,13 @@
 ---
+export const prerender = false
+
 import SEOLayout from '../../layouts/SEOLayout.astro'
 import BlockRenderer from '../../components/blocks/BlockRenderer.astro'
 import Breadcrumbs from '../../components/Breadcrumbs.astro'
 import { payload } from '../../lib/payload'
+import { setCacheHeaders } from '../../lib/cache'
 
-export async function getStaticPaths() {
-  const { docs: services } = await payload.getAllServices()
-  return services.map((service) => ({
-    params: { slug: service.slug },
-  }))
-}
+setCacheHeaders(Astro)
 
 const { slug } = Astro.params
 const [service, siteSettings] = await Promise.all([

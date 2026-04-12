@@ -28,7 +28,8 @@ export default buildConfig({
     },
     livePreview: {
       url: ({ data, collectionConfig, locale }) => {
-        const astroUrl = process.env.PUBLIC_ASTRO_URL || 'http://localhost:4400'
+        const astroUrl = process.env.PUBLIC_ASTRO_URL
+        if (!astroUrl) return ''
         const slug = (data as any)?.slug || ''
         const collection = collectionConfig?.slug || ''
         const localeParam = locale?.code && locale.code !== 'en' ? `&locale=${locale.code}` : ''
@@ -53,6 +54,7 @@ export default buildConfig({
     fallback: true,
   },
   serverURL: process.env.NEXT_PUBLIC_SERVER_URL || '',
+  cors: process.env.PUBLIC_ASTRO_URL ? [process.env.PUBLIC_ASTRO_URL] : [],
   collections: [
     Pages, Media, Users, Services, Locations, ServicePages,
     BlogPosts, FAQs, Testimonials, TeamMembers,

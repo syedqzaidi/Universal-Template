@@ -25,7 +25,7 @@ async function checkPayloadRedirects(
 
   try {
     const serverUrl =
-      process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3100'
+      process.env.NEXT_PUBLIC_SERVER_URL || ''
     const res = await fetch(
       `${serverUrl}/api/redirects?where[from][equals]=${encodeURIComponent(pathname)}&limit=1`,
       {

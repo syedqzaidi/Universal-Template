@@ -277,7 +277,7 @@ export interface PayloadClient {
   fetch: <T>(endpoint: string, params?: Record<string, string>) => Promise<T>
   fetchList: <T>(collection: string, params?: Record<string, string>) => Promise<PayloadListResponse<T>>
   fetchById: <T>(collection: string, id: string, depth?: number) => Promise<T>
-  fetchBySlug: <T>(collection: string, slug: string, depth?: number) => Promise<T | null>
+  fetchBySlug: <T>(collection: string, slug: string, depth?: number, draft?: boolean) => Promise<T | null>
   fetchPublished: <T>(collection: string, params?: Record<string, string>) => Promise<PayloadListResponse<T>>
   fetchPaginated: <T>(collection: string, page: number, limit: number, params?: Record<string, string>) => Promise<PayloadListResponse<T>>
   fetchGlobal: <T>(slug: string) => Promise<T>
