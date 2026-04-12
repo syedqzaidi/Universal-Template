@@ -10,25 +10,29 @@ Agency Web Stack — a pnpm monorepo template for building client websites. Two 
 
 ```bash
 # Development
-pnpm dev:astro              # Astro dev server (port 4400)
-pnpm dev:next               # Next.js dev server (port 3100)
-pnpm dev:supabase           # Start local Supabase (API: 54321, DB: 54322)
+pnpm dev:astro              # Astro dev server
+pnpm dev:next               # Next.js dev server
+pnpm dev:supabase           # Start local Supabase
 pnpm stop:supabase          # Stop local Supabase
 
 # Building
 pnpm build:astro            # Production build for Astro
 pnpm build:next             # Production build for Next.js
 
-# Per-template (from template directory)
-cd templates/astro-site && pnpm dev
-cd templates/next-app && pnpm dev
+# Linting
+cd templates/next-app && pnpm lint  # ESLint for Next.js
 
 # Project setup
-node scripts/create-project.mjs        # Interactive project wizard
-bash scripts/bootstrap.sh my-project   # One-command bootstrap
+node scripts/create-project.mjs        # Interactive project wizard (choose preset, services)
+bash scripts/bootstrap.sh my-project   # One-command bootstrap (wizard + init)
+bash scripts/init-project.sh           # Port allocation, env injection, secrets generation
 bash scripts/launch-ui.sh              # GUI dashboard (port 3333)
-bash scripts/validate-template.sh      # Validation tests
-bash scripts/e2e-test.sh               # End-to-end tests
+
+# Validation & testing
+bash scripts/validate-template.sh           # Health checks (files, deps, config quality)
+bash scripts/validate-template.sh --full    # + dev server smoke tests
+bash scripts/validate-template.sh --fix     # Auto-fix (apply RLS, etc.)
+bash scripts/e2e-test.sh                    # End-to-end workflow tests
 
 # Docker (Twenty CRM)
 docker compose -f docker/twenty/docker-compose.yml up -d
@@ -41,9 +45,23 @@ docker compose -f docker/twenty/docker-compose.yml up -d
 │   ├── astro-site/          # Astro 6 — marketing/SEO sites, file-based routing
 │   │   └── src/{pages,components/ui,layouts,lib,styles}/
 │   └── next-app/            # Next.js 16 — dashboard + Payload CMS admin
-│       └── src/{app/(app),app/(payload),app/api,collections,lib,mcp,emails}/
+│       └── src/
+│           ├── app/(app)/       # Main app routes
+│           ├── app/(payload)/   # Payload admin UI mount point
+│           ├── app/api/         # API routes (Payload REST + webhooks)
+│           ├── collections/     # Payload collection definitions
+│           ├── blocks/          # Reusable content blocks for layout arrays
+│           ├── hooks/           # Payload lifecycle hooks (beforeChange, afterChange)
+│           ├── globals/         # Payload globals (SiteSettings)
+│           ├── access/          # Access control predicates
+│           ├── fields/          # Custom Payload field components
+│           ├── plugins/         # Payload plugin initialization
+│           ├── webhooks/        # Incoming webhook handlers (Twenty, Resend)
+│           ├── lib/             # Utilities (Supabase, Payload clients)
+│           ├── emails/          # React Email templates
+│           └── mcp/             # MCP tools and prompts for AI integration
 ├── packages/
-│   ├── shared/              # @template/shared — Supabase, PostHog, Resend clients
+│   ├── shared/              # @template/shared — Supabase, PostHog, Resend, Payload clients
 │   └── create-site/         # @agency/create-site — setup wizard CLI
 ├── tools/ai-website-cloner/ # Standalone Next.js tool for reverse-engineering sites
 ├── docker/twenty/           # Twenty CRM v1.20 Docker Compose
@@ -55,30 +73,85 @@ docker compose -f docker/twenty/docker-compose.yml up -d
 
 ### Key Relationships
 
-- **@template/shared** exports `./supabase`, `./posthog`, `./resend`, `./types` — consumed by both templates
+- **@template/shared** exports `./supabase`, `./posthog`, `./resend`, `./payload`, `./types` — consumed by both templates
 - **Payload CMS** lives inside `templates/next-app/` — collections in `src/collections/`, config at `src/payload.config.ts`
+- **Astro fetches from Payload** via REST API client in `packages/shared/src/payload/client.ts` — all CMS pages are SSR
 - **Twenty CRM** integration: API client at `src/lib/twenty/`, webhooks at `src/webhooks/`
 - **MCP tools** (61 tools, 8 prompts) at `templates/next-app/src/mcp/` — AI-powered CMS operations
 
-### Tailwind CSS v4
+## Port Allocation System
 
-Both templates use Tailwind v4 — no `tailwind.config.js` file. Configuration is CSS-native:
+**Ports are never hardcoded in source code.** Each project gets unique ports via `init-project.sh`, which hashes the project name to generate an offset:
+
+- Astro: `4400 + offset`, Next.js: `3100 + offset`, Twenty: `3200 + offset`
+- Supabase services use wider spacing: `(offset % 50) * 10`
+- Ports saved to `.ports` file and injected into `.env.local` for both templates
+
+This enables multiple client projects to run simultaneously without port collisions. The `.env.template` has default ports (4400, 3100) that get overwritten per-project.
+
+**Critical rule:** Never use port fallbacks like `|| 'http://localhost:3100'` in template source. Use env vars only. The validation script (`check_no_hardcoded_ports`) enforces this.
+
+**Config-time env loading:** `astro.config.mjs` reads `.env.local` manually via `fs.readFileSync` because Astro hasn't loaded env files yet when the config runs.
+
+## Environment Variable Flow
+
+1. `.env.template` — source of truth (checked in), defines all vars with default ports
+2. `create-project.mjs` — wizard removes unused service vars based on preset
+3. `init-project.sh` — copies `.env.template` → `.env.local`, injects per-project ports + generated secrets
+4. `.env.local` copied to `templates/next-app/.env.local` and `templates/astro-site/.env.local`
+
+Payload plugins activate conditionally based on env vars (e.g., MCP plugin only if API keys present, Stripe plugin only if `STRIPE_SECRET_KEY` is set).
+
+## Payload CMS Architecture
+
+### Collections vs Blocks
+
+- **Collections** (10): Pages, Services, Locations, ServicePages, BlogPosts, FAQs, Testimonials, TeamMembers, Media, Users — top-level content types with access control, versioning, and drafts
+- **Blocks** (13): Hero, ServiceDetail, FAQ, Testimonials, CTA, LocationMap, Content, Stats, Gallery, Pricing, Team, RelatedLinks — reusable content sections added to collection `layout` array fields
+
+### Service + Location Cross-Product
+
+Services (offerings) × Locations (cities) = ServicePages. This powers programmatic SEO with pages like `/services/plumbing/austin-tx`. All three collections interlink for internal linking.
+
+### Access Control
+
+Predicates in `src/access/`: `isAdmin`, `isAdminOrEditor`, `publishedOrLoggedIn` (public sees published, logged-in users see all). Applied per-collection at read/create/update/delete level.
+
+### Slug Auto-Generation
+
+`src/hooks/auto-generate-slug.ts` runs on every collection with a slug field:
+- On create: generates from `title`/`name`/`displayName` using `slugify()` (aggressive) or `slugifyLight()` (blog posts)
+- On every save: normalizes existing slugs to lowercase, removes special chars, collapses dashes
+
+### Live Preview (Astro ↔ Payload)
+
+Real-time preview in Payload's admin panel, rendered by Astro:
+
+1. `payload.config.ts` configures `livePreview.url` pointing to Astro's `/preview` route with collection, slug, and token
+2. Astro's `preview.astro` (SSR) fetches the document and renders a `<LivePreview>` React island (`client:load`)
+3. `@payloadcms/live-preview-react` subscribes to `window.postMessage` events from the admin panel
+4. Edits in the admin form merge into the preview data in real-time via `useLivePreview` hook
+5. CORS: `payload.config.ts` allows the Astro origin, and a custom `OPTIONS` handler in `api/[...slug]/route.ts` handles preflight
+
+**Requirements:** `PREVIEW_SECRET` must match in both `.env.local` files. `PAYLOAD_API_KEY` must be set in Astro's env for draft content. Users collection has `useAPIKey: true`.
+
+## SSR vs SSG
+
+- **SSR pages** (`export const prerender = false`): All CMS-driven routes (services, blog, locations), preview, search — content appears instantly without rebuilds
+- **SSG pages** (default): Static pages (404, terms, privacy, faq, contact, team) — built at build time
+- **Cache headers**: SSR pages set `Cache-Control: s-maxage=3600, stale-while-revalidate=86400` in production for CDN caching; disabled in dev for fresh content
+
+## Tailwind CSS v4
+
+No `tailwind.config.js` file. Configuration is CSS-native:
 - Astro: `@tailwindcss/vite` plugin in `astro.config.mjs`
 - Next.js: `@tailwindcss/postcss` in `postcss.config.mjs`
 - Import via `@import "tailwindcss"` in CSS files
-- Colors use OKLCh color space
+- Design tokens defined in CSS `@theme` blocks; colors use OKLCh color space
 
-### UI Components
+## UI Components
 
 Both templates use shadcn/ui with Radix UI primitives. Components live in `src/components/ui/`. Animation via Motion library (not Framer Motion).
-
-### Payload CMS Plugins (Next.js only)
-
-form-builder, seo, search, redirects, nested-docs, stripe, sentry, mcp, import-export, richtext-lexical. Storage: S3 or Vercel Blob.
-
-## Environment Variables
-
-All defined in `.env.template`. Key groups: Supabase (URLs + keys), Payload CMS (secret + DB URL), Sentry (DSN + auth), PostHog (key + host), Resend (API key), Stripe (secret + webhook + publishable), Twenty CRM (URL + API key), S3/Blob storage, AI keys (OpenAI, Anthropic, Google, ElevenLabs).
 
 ## Project Presets
 
@@ -87,3 +160,7 @@ All defined in `.env.template`. Key groups: Supabase (URLs + keys), Payload CMS 
 ## Node Requirements
 
 Root: >=20, Astro: >=22.12.0, AI Website Cloner: >=24
+
+## Next.js 16 Warning
+
+This uses Next.js 16 which has breaking changes from earlier versions. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.

@@ -2,7 +2,10 @@
 export const prerender = false
 
 import SEOLayout from '../layouts/SEOLayout.astro'
-import LivePreview from '../components/LivePreview'
+import BlockRenderer from '../components/blocks/BlockRenderer.astro'
+import Breadcrumbs from '../components/Breadcrumbs.astro'
+import RichText from '../components/RichText.astro'
+import RefreshOnSave from '../components/RefreshOnSave'
 import { payload } from '../lib/payload'
 
 const url = new URL(Astro.request.url)
@@ -19,18 +22,43 @@ if (!collection || !slug) {
   return new Response('Missing collection or slug', { status: 400 })
 }
 
-const doc = await payload.fetchBySlug(collection, slug, 2, true)
+const doc = await payload.fetchBySlug(collection, slug, 2, true) as Record<string, any> | null
 
 if (!doc) {
   return new Response('Document not found', { status: 404 })
 }
 
 const serverURL = import.meta.env.PAYLOAD_API_URL?.replace(/\/api\/?$/, '') || ''
+const title = doc.title || doc.name || doc.displayName || slug
+const description = doc.shortDescription || doc.excerpt || doc.seoDescription || ''
 ---
 
-<SEOLayout title={`[PREVIEW] ${(doc as any).title || (doc as any).name || slug}`} noindex={true}>
+<SEOLayout title={`[PREVIEW] ${title}`} noindex={true}>
+  <RefreshOnSave client:load serverURL={serverURL} />
+
   <div class="bg-yellow-100 border-b border-yellow-300 px-4 py-2 text-center text-sm font-medium text-yellow-800">
-    Preview Mode -- Editing in real-time
+    Preview Mode — auto-refreshes on save
   </div>
-  <LivePreview client:load initialData={doc} serverURL={serverURL} />
+
+  <div class="container mx-auto px-4 py-8">
+    <Breadcrumbs items={[
+      { name: 'Home', url: '/' },
+      { name: collection.charAt(0).toUpperCase() + collection.slice(1).replace(/-/g, ' '), url: '#' },
+      { name: title, url: '#' },
+    ]} />
+  </div>
+
+  <!-- Render the same way the actual pages do -->
+  {doc.layout && (
+    <BlockRenderer blocks={doc.layout} context={{ [collection.replace(/-.*$/, '')]: doc }} />
+  )}
+
+  <!-- Fallback for documents without layout blocks -->
+  {!doc.layout && (
+    <div class="container max-w-3xl mx-auto px-4 py-8">
+      <h1 class="text-4xl font-bold mb-4">{title}</h1>
+      {description && <p class="text-lg text-muted-foreground mb-8">{description}</p>}
+      {doc.content && <RichText content={doc.content} />}
+    </div>
+  )}
 </SEOLayout>
