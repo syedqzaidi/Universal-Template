@@ -1,7 +1,6 @@
 'use client'
 
-// @ts-expect-error -- Payload UI client exports resolve at runtime via Next.js bundler
-import { TextInput, useField, useFormFields, FieldLabel } from '@payloadcms/ui/client'
+import { TextInput, useField, useFormFields, FieldLabel } from '@payloadcms/ui'
 import React, { useCallback, useEffect } from 'react'
 
 /**
