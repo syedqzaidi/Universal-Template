@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
 import { isAdminOrEditor, publishedOrLoggedIn } from '../access'
 import { autoGenerateServicePageSlug } from '../hooks/auto-generate-service-page-slug'
+import { slugField } from '../fields/slug'
 import { triggerRebuildAfterChange } from '../hooks/trigger-rebuild'
 import {
   HeroBlock, ServiceDetailBlock, FAQBlock, TestimonialsBlock,
@@ -58,14 +59,7 @@ export const ServicePages: CollectionConfig = {
       localized: true,
       admin: { description: 'Page title -- auto-generated as "[Service] in [Location]" but customizable' },
     },
-    {
-      name: 'slug',
-      type: 'text',
-      required: true,
-      unique: true,
-      index: true,
-      admin: { description: 'URL slug -- auto-generated as "[service-slug]-in-[location-slug]"' },
-    },
+    slugField,
     {
       name: 'service',
       type: 'relationship',

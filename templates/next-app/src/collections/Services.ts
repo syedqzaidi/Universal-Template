@@ -7,6 +7,7 @@ import {
   CTABlock, LocationMapBlock, ContentBlock, StatsBlock,
   GalleryBlock, PricingBlock, TeamBlock, RelatedLinksBlock,
 } from '../blocks'
+import { slugField } from '../fields/slug'
 
 export const Services: CollectionConfig = {
   slug: 'services',
@@ -41,17 +42,7 @@ export const Services: CollectionConfig = {
       localized: true,
       admin: { description: 'Service name displayed as the page title' },
     },
-    {
-      name: 'slug',
-      type: 'text',
-      required: true,
-      unique: true,
-      index: true,
-      admin: {
-        position: 'sidebar',
-        description: 'URL-safe identifier -- auto-generated from name',
-      },
-    },
+    slugField,
     {
       name: 'category',
       type: 'select',

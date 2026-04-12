@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
 import { isAdminOrEditor, publishedOrLoggedIn } from '../access'
 import { autoGenerateSlug } from '../hooks/auto-generate-slug'
+import { slugField } from '../fields/slug'
 import { triggerRebuildAfterChange } from '../hooks/trigger-rebuild'
 
 export const Locations: CollectionConfig = {
@@ -75,14 +76,7 @@ export const Locations: CollectionConfig = {
       localized: true,
       admin: { description: 'Display name (e.g., "Austin, TX" or "Downtown Austin")' },
     },
-    {
-      name: 'slug',
-      type: 'text',
-      required: true,
-      unique: true,
-      index: true,
-      admin: { position: 'sidebar' },
-    },
+    slugField,
     {
       name: 'type',
       type: 'select',

@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
 import { isAdminOrEditor, publishedOrLoggedIn } from '../access'
 import { autoGenerateSlug } from '../hooks/auto-generate-slug'
+import { slugField } from '../fields/slug'
 import { triggerRebuildAfterChange } from '../hooks/trigger-rebuild'
 
 export const BlogPosts: CollectionConfig = {
@@ -29,7 +30,7 @@ export const BlogPosts: CollectionConfig = {
   },
   fields: [
     { name: 'title', type: 'text', required: true, localized: true },
-    { name: 'slug', type: 'text', required: true, unique: true, index: true },
+    slugField,
     { name: 'excerpt', type: 'textarea', maxLength: 300, localized: true },
     { name: 'content', type: 'richText', required: true, localized: true },
     { name: 'featuredImage', type: 'upload', relationTo: 'media' },
