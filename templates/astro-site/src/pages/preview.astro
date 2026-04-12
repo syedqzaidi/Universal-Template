@@ -3,7 +3,7 @@ export const prerender = false
 
 import SEOLayout from '../layouts/SEOLayout.astro'
 import BlockRenderer from '../components/blocks/BlockRenderer.astro'
-import { createPayloadClient } from '@template/shared/payload'
+import { payload } from '../lib/payload'
 
 const url = new URL(Astro.request.url)
 const collection = url.searchParams.get('collection')
@@ -18,11 +18,6 @@ if (!previewSecret || token !== previewSecret) {
 if (!collection || !slug) {
   return new Response('Missing collection or slug', { status: 400 })
 }
-
-const payload = createPayloadClient({
-  apiUrl: import.meta.env.PAYLOAD_API_URL || 'http://localhost:3158/api',
-  apiKey: import.meta.env.PAYLOAD_API_KEY,
-})
 
 const doc = await payload.fetchBySlug(collection, slug, 2)
 

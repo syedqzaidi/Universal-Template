@@ -1,16 +1,9 @@
 ---
 import SEOLayout from '../../layouts/SEOLayout.astro'
 import RichText from '../../components/RichText.astro'
-import { createPayloadClient } from '@template/shared/payload'
-
-const payload = createPayloadClient({
-  apiUrl: import.meta.env.PAYLOAD_API_URL || 'http://localhost:3158/api',
-})
+import { payload } from '../../lib/payload'
 
 export async function getStaticPaths() {
-  const payload = createPayloadClient({
-    apiUrl: import.meta.env.PAYLOAD_API_URL || 'http://localhost:3158/api',
-  })
   const { docs: locations } = await payload.getAllLocations()
   return locations.map((location) => ({
     params: { city: location.slug },

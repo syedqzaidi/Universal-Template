@@ -1,11 +1,7 @@
 ---
 import SEOLayout from '../../layouts/SEOLayout.astro'
 import LocationCard from '../../components/LocationCard.astro'
-import { createPayloadClient } from '@template/shared/payload'
-
-const payload = createPayloadClient({
-  apiUrl: import.meta.env.PAYLOAD_API_URL || 'http://localhost:3158/api',
-})
+import { payload } from '../../lib/payload'
 
 const [siteSettings, { docs: locations }] = await Promise.all([
   payload.getSiteSettings(),

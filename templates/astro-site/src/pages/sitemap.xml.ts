@@ -1,10 +1,7 @@
 import type { APIRoute } from 'astro'
-import { createPayloadClient } from '@template/shared/payload'
+import { payload } from '../lib/payload'
 
 export const GET: APIRoute = async () => {
-  const payload = createPayloadClient({
-    apiUrl: import.meta.env.PAYLOAD_API_URL || 'http://localhost:3158/api',
-  })
 
   const [
     { docs: services },

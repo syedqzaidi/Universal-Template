@@ -3,19 +3,9 @@ import '../styles/global.css'
 import SiteHeader from '../components/SiteHeader.astro'
 import SiteFooter from '../components/SiteFooter.astro'
 import { generateSchemas } from '../lib/seo'
-import { createPayloadClient } from '@template/shared/payload'
+import { payload } from '../lib/payload'
 
-let _cachedSiteSettings: any = null
-async function getCachedSiteSettings() {
-  if (_cachedSiteSettings) return _cachedSiteSettings
-  const client = createPayloadClient({
-    apiUrl: import.meta.env.PAYLOAD_API_URL || 'http://localhost:3158/api',
-  })
-  _cachedSiteSettings = await client.getSiteSettings()
-  return _cachedSiteSettings
-}
-
-const siteSettings = await getCachedSiteSettings()
+const siteSettings = await payload.getSiteSettings()
 
 interface Props {
   title: string

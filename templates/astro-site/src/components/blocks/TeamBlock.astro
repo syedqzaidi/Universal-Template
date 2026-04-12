@@ -1,6 +1,6 @@
 ---
 import TeamMemberCard from '../TeamMemberCard.astro'
-import { createPayloadClient } from '@template/shared/payload'
+import { payload } from '../../lib/payload'
 
 interface Props { data: any; context?: Record<string, any>; headingLevel?: 2 | 3 | 4 }
 const { data, context = {}, headingLevel = 2 } = Astro.props
@@ -12,9 +12,6 @@ if (data.source === 'manual') {
   members = (data.members || []).map((m: any) => typeof m === 'object' ? m : null).filter(Boolean)
 } else {
   // Fetch from API: all or by location
-  const payload = createPayloadClient({
-    apiUrl: import.meta.env.PAYLOAD_API_URL || 'http://localhost:3158/api',
-  })
   if (data.source === 'location' && context.location?.id) {
     const result = await payload.getTeamMembers({ 'where[locations][equals]': context.location.id })
     members = result.docs

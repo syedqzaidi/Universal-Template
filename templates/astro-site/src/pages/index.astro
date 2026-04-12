@@ -2,11 +2,7 @@
 import SEOLayout from '../layouts/SEOLayout.astro'
 import ServiceCard from '../components/ServiceCard.astro'
 import TestimonialCard from '../components/TestimonialCard.astro'
-import { createPayloadClient } from '@template/shared/payload'
-
-const payload = createPayloadClient({
-  apiUrl: import.meta.env.PAYLOAD_API_URL || 'http://localhost:3158/api',
-})
+import { payload } from '../lib/payload'
 
 const [
   siteSettings,

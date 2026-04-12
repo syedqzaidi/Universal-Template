@@ -1,6 +1,6 @@
 ---
 import RichText from '../RichText.astro'
-import { createPayloadClient } from '@template/shared/payload'
+import { payload } from '../../lib/payload'
 
 interface Props { data: any; context?: Record<string, any>; headingLevel?: 2 | 3 | 4 }
 const { data, context = {}, headingLevel = 2 } = Astro.props
@@ -10,9 +10,6 @@ const HeadingTag = `h${headingLevel}` as any
 let faqs: any[] = []
 if (data.source === 'auto') {
   // Auto-fetch FAQs filtered by the page's service/location context
-  const payload = createPayloadClient({
-    apiUrl: import.meta.env.PAYLOAD_API_URL || 'http://localhost:3158/api',
-  })
   const serviceId = context.service?.id
   const locationId = context.location?.id
   if (serviceId) {

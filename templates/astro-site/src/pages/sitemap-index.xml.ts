@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro'
-import { createPayloadClient } from '@template/shared/payload'
+import { payload } from '../lib/payload'
 
 // NOTE: When a site exceeds 50k URLs, this generates a sitemap index referencing
 // per-collection sub-sitemaps (e.g., /sitemap-services.xml). These sub-sitemap
@@ -8,9 +8,6 @@ import { createPayloadClient } from '@template/shared/payload'
 const MAX_URLS_PER_SITEMAP = 50_000
 
 export const GET: APIRoute = async () => {
-  const payload = createPayloadClient({
-    apiUrl: import.meta.env.PAYLOAD_API_URL || 'http://localhost:3158/api',
-  })
 
   const baseUrl = import.meta.env.SITE_URL || 'https://example.com'
 

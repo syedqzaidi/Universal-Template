@@ -13,12 +13,17 @@ import sentry from '@sentry/astro';
 // import cloudflare from '@astrojs/cloudflare';
 import node from '@astrojs/node';
 
+// Derive port from SITE_URL so there's a single source of truth.
+// init-project.sh sets SITE_URL with the correct port per project.
+const siteUrl = process.env.SITE_URL || 'http://localhost:4400';
+const astroPort = parseInt(new URL(siteUrl).port || '4400', 10);
+
 export default defineConfig({
   // Astro 6: output 'static' is the default — pages are SSG unless they
   // export `prerender = false` (used by preview and search routes).
-  site: process.env.SITE_URL || 'http://localhost:4400',
+  site: siteUrl,
   trailingSlash: 'never',
-  server: { port: 4400 },
+  server: { port: astroPort },
   adapter: node({ mode: 'standalone' }),  // Required for SSR routes (preview, search)
   vite: {
     plugins: [tailwindcss()],

@@ -1,5 +1,5 @@
 ---
-import { createPayloadClient } from '@template/shared/payload'
+import { payload } from '../../lib/payload'
 
 interface Props { data: any; context?: Record<string, any>; headingLevel?: 2 | 3 | 4 }
 const { data, context = {}, headingLevel = 2 } = Astro.props
@@ -12,9 +12,6 @@ if (data.source === 'manual') {
   testimonials = (data.testimonials || []).map((t: any) => typeof t === 'object' ? t : null).filter(Boolean)
 } else {
   // Fetch from API: featured, by service, or by location
-  const payload = createPayloadClient({
-    apiUrl: import.meta.env.PAYLOAD_API_URL || 'http://localhost:3158/api',
-  })
   if (data.source === 'service' && context.service?.id) {
     const result = await payload.getTestimonials({ 'where[service][equals]': context.service.id })
     testimonials = result.docs

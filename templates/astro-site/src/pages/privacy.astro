@@ -1,11 +1,7 @@
 ---
 import SEOLayout from '../layouts/SEOLayout.astro'
 import RichText from '../components/RichText.astro'
-import { createPayloadClient } from '@template/shared/payload'
-
-const payload = createPayloadClient({
-  apiUrl: import.meta.env.PAYLOAD_API_URL || 'http://localhost:3158/api',
-})
+import { payload } from '../lib/payload'
 
 const page = await payload.getPageBySlug('privacy')
 const siteSettings = await payload.getSiteSettings()
