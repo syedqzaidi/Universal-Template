@@ -24,7 +24,7 @@ export default buildConfig({
     },
     user: 'users',
     components: {
-      afterDashboard: ['/src/components/DeployButton'],
+      afterDashboard: ['/components/DeployButton'],
     },
     livePreview: {
       url: ({ data, collectionConfig, locale }) => {
