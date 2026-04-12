@@ -36,6 +36,7 @@ function slugifyLight(text: string): string {
 }
 
 export const autoGenerateSlug: CollectionBeforeChangeHook = ({ data, operation, collection }) => {
+  // Auto-generate slug from name/title on create if not provided
   if (operation === 'create' && !data.slug) {
     const source = data.name || data.title || data.displayName || ''
     if (source) {
@@ -43,7 +44,6 @@ export const autoGenerateSlug: CollectionBeforeChangeHook = ({ data, operation, 
       if (slug) {
         data.slug = slug
       } else {
-        // All words were stop-words — fall back to basic cleanup without stop-word removal
         const fallback = source
           .toLowerCase()
           .trim()
@@ -57,5 +57,17 @@ export const autoGenerateSlug: CollectionBeforeChangeHook = ({ data, operation, 
       }
     }
   }
+
+  // Always normalize existing slugs: lowercase, no spaces, no special chars
+  if (data.slug) {
+    data.slug = data.slug
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9-]/g, '')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
+  }
+
   return data
 }
