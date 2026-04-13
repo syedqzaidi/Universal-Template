@@ -78,6 +78,11 @@ export default buildConfig({
   onInit: async (payload) => {
     if (process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
       const { seedAiInstructions } = await import('./scripts/seed-ai-instructions')
+      // RESEED_AI_PROMPTS=1 deletes all existing records and re-seeds with latest prompts
+      if (process.env.RESEED_AI_PROMPTS) {
+        await payload.delete({ collection: 'plugin-ai-instructions', where: { id: { exists: true } } })
+        payload.logger.info('Cleared existing AI instructions for re-seed')
+      }
       const result = await seedAiInstructions(payload)
       payload.logger.info(`AI instructions seeded: ${result.created} created, ${result.skipped} skipped`)
     }
