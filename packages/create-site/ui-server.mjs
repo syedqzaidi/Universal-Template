@@ -458,36 +458,46 @@ export function startUI(args) {
 
       broadcast('gen-status', 'starting');
 
-      // Build the prompt that Claude Code will execute
-      const safeDesc = desc.replace(/'/g, "'\\''").replace(/\n/g, ' ');
+      // Build the prompt to pipe via stdin to Claude Code
+      const prompt = [
+        `You are generating a complete website for this business. Follow the generation protocol in the project CLAUDE.md.`,
+        ``,
+        `Business: ${desc}`,
+        ``,
+        `Read CLAUDE.md for the full generation protocol and available MCP tools. Then execute the 10-phase generation protocol:`,
+        ``,
+        `1. Analyze the business - identify entities, relationships, cross-products, CRM pipeline, email sequences`,
+        `2. Generate Payload CMS collections for each entity`,
+        `3. Generate cross-product collections if applicable`,
+        `4. Generate any new blocks needed`,
+        `5. Generate Astro pages for each route`,
+        `6. Generate JSON-LD schemas`,
+        `7. Configure CRM pipeline (deferred if Twenty not available)`,
+        `8. Generate email templates (deferred if Resend not available)`,
+        `9. Seed collections with realistic content`,
+        `10. Generate navigation config and validate builds`,
+        ``,
+        `Use the MCP tools: analyze_business, generate_collection, generate_cross_product_collection, generate_page, generate_block, generate_schema, configure_crm_pipeline, generate_email_sequence, seed_collection, generate_nav, validate_generation.`,
+        ``,
+        `All generated code must compile. Update .generation-manifest.json after each step.`,
+      ].join('\n');
 
-      // Use claude --print for non-interactive mode with --dangerously-skip-permissions
-      // to allow file writes without prompting
-      const claudeCmd = `claude --print --dangerously-skip-permissions -p 'You are generating a complete website for this business. Follow the generation protocol in the project CLAUDE.md.
-
-Business: ${safeDesc}
-
-Read .generation-manifest.json for the saved business description. Read CLAUDE.md for the full generation protocol and available MCP tools. Then execute the 10-phase generation protocol:
-
-1. Analyze the business - identify entities, relationships, cross-products, CRM pipeline, email sequences
-2. Generate Payload CMS collections for each entity
-3. Generate cross-product collections if applicable
-4. Generate any new blocks needed
-5. Generate Astro pages for each route
-6. Generate JSON-LD schemas
-7. Configure CRM pipeline (deferred if Twenty not available)
-8. Generate email templates (deferred if Resend not available)
-9. Seed collections with realistic content
-10. Generate navigation config and validate builds
-
-Use the MCP tools: analyze_business, generate_collection, generate_cross_product_collection, generate_page, generate_block, generate_schema, configure_crm_pipeline, generate_email_sequence, seed_collection, generate_nav, validate_generation.
-
-All generated code must compile. Update .generation-manifest.json after each step.'`;
-
-      const proc = spawn('bash', ['-c', claudeCmd], {
+      // Spawn claude with --print, pipe the prompt via stdin
+      // This avoids shell escaping issues with -p '...' for long prompts
+      const proc = spawn('claude', [
+        '--print',
+        '--dangerously-skip-permissions',
+        '--output-format', 'text',
+        '--verbose',
+      ], {
         cwd: projPath,
         env: { ...process.env, FORCE_COLOR: '0' },
+        stdio: ['pipe', 'pipe', 'pipe'],
       });
+
+      // Write prompt to stdin and close it
+      proc.stdin.write(prompt);
+      proc.stdin.end();
 
       processes.generate = { proc, port: null };
 
