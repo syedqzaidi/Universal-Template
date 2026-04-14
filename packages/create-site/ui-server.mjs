@@ -486,9 +486,7 @@ export function startUI(args) {
       // This avoids shell escaping issues with -p '...' for long prompts
       const proc = spawn('claude', [
         '--print',
-        '--dangerously-skip-permissions',
         '--output-format', 'text',
-        '--verbose',
       ], {
         cwd: projPath,
         env: { ...process.env, FORCE_COLOR: '0' },
