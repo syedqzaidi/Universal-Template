@@ -3,7 +3,7 @@
 # launch-ui.sh — One command to launch the Agency Web Stack GUI
 #
 # Usage:
-#   bash <(curl -fsSL https://raw.githubusercontent.com/syedqzaidi/agency-web-stack/main/scripts/launch-ui.sh)
+#   bash <(curl -fsSL https://raw.githubusercontent.com/syedqzaidi/Universal-Template/main/scripts/launch-ui.sh)
 # =============================================================================
 
 set -euo pipefail
@@ -11,7 +11,7 @@ set -euo pipefail
 # Use GitHub API to download raw files — no CDN caching issues
 # raw.githubusercontent.com caches for 5 min, jsDelivr has branch resolution lag
 # The API always returns the latest content
-REPO="syedqzaidi/agency-web-stack"
+REPO="syedqzaidi/Universal-Template"
 BRANCH="main"
 
 echo ""

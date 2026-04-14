@@ -298,7 +298,7 @@ export function startUI(args) {
       // 1. Clone the repo
       // 2. Run create-project.mjs with flags (non-interactive)
       // 3. Run init-project.sh
-      const REPO = 'https://github.com/syedqzaidi/agency-web-stack.git';
+      const REPO = 'https://github.com/syedqzaidi/Universal-Template.git';
       // Use safeName everywhere to prevent shell injection and path mismatches
       const safeLocation = location.replace(/'/g, "'\\''");
       const cmd = [
