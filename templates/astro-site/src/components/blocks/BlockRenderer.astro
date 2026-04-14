@@ -1,5 +1,7 @@
 ---
 import type { Block } from '@template/shared/payload/types'
+import type { SectionDefinition, BackgroundToken, WidthToken, SpacingToken } from '../../types/blueprint'
+import AnimatedSection from '../AnimatedSection.astro'
 import HeroBlock from './HeroBlock.astro'
 import ServiceDetailBlock from './ServiceDetailBlock.astro'
 import FAQBlock from './FAQBlock.astro'
@@ -15,40 +17,114 @@ import RelatedLinksBlock from './RelatedLinksBlock.astro'
 
 interface Props {
   blocks: Block[]
+  blueprintSections?: SectionDefinition[]
   context?: Record<string, any>
   baseHeadingLevel?: 2 | 3 | 4
+  visualBreaks?: number[]
+  rhythmSpacing?: SpacingToken
 }
 
-const { blocks = [], context = {}, baseHeadingLevel = 2 } = Astro.props
+const {
+  blocks = [],
+  blueprintSections,
+  context = {},
+  baseHeadingLevel = 2,
+  visualBreaks = [],
+  rhythmSpacing = 'default',
+} = Astro.props
+
+const backgroundClasses: Record<BackgroundToken, string> = {
+  default: 'bg-background',
+  muted: 'bg-muted/50',
+  primary: 'bg-primary text-primary-foreground',
+  dark: 'bg-foreground text-background',
+  gradient: 'bg-gradient-to-b from-muted/50 to-background',
+  auto: 'bg-background',
+}
+
+const widthClasses: Record<WidthToken, string> = {
+  contained: 'container mx-auto px-4 max-w-7xl',
+  'full-bleed': 'w-full',
+  narrow: 'container mx-auto px-4 max-w-3xl',
+}
+
+const spacingClasses: Record<SpacingToken, string> = {
+  compact: 'py-12 md:py-16',
+  default: 'py-16 md:py-20',
+  spacious: 'py-20 md:py-28',
+}
+
+function isKnownBlock(blockType: string): boolean {
+  return ['hero','serviceDetail','faq','testimonials','cta','locationMap','content','stats','gallery','pricing','team','relatedLinks'].includes(blockType)
+}
+
+const isDev = import.meta.env.DEV
+const hasBlueprint = !!blueprintSections
 ---
 
 {blocks.map((block, index) => {
-  switch (block.blockType) {
-    case 'hero':
-      return <HeroBlock data={block} context={context} headingLevel={baseHeadingLevel} />
-    case 'serviceDetail':
-      return <ServiceDetailBlock data={block} context={context} headingLevel={baseHeadingLevel} />
-    case 'faq':
-      return <FAQBlock data={block} context={context} headingLevel={baseHeadingLevel} />
-    case 'testimonials':
-      return <TestimonialsBlock data={block} context={context} headingLevel={baseHeadingLevel} />
-    case 'cta':
-      return <CTABlock data={block} context={context} headingLevel={baseHeadingLevel} />
-    case 'locationMap':
-      return <LocationMapBlock data={block} context={context} headingLevel={baseHeadingLevel} />
-    case 'content':
-      return <ContentBlock data={block} context={context} headingLevel={baseHeadingLevel} />
-    case 'stats':
-      return <StatsBlock data={block} context={context} headingLevel={baseHeadingLevel} />
-    case 'gallery':
-      return <GalleryBlock data={block} context={context} headingLevel={baseHeadingLevel} />
-    case 'pricing':
-      return <PricingBlock data={block} context={context} headingLevel={baseHeadingLevel} />
-    case 'team':
-      return <TeamBlock data={block} context={context} headingLevel={baseHeadingLevel} />
-    case 'relatedLinks':
-      return <RelatedLinksBlock data={block} context={context} headingLevel={baseHeadingLevel} />
-    default:
-      return null
+  if (!isKnownBlock(block.blockType)) {
+    if (isDev) {
+      return (
+        <div class="bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-3 rounded my-4">
+          Block component not found: <code>{block.blockType}</code>
+        </div>
+      )
+    }
+    return null
   }
+
+  const section = hasBlueprint && blueprintSections![index] ? blueprintSections![index] : null
+  if (isDev && hasBlueprint && !section) {
+    console.warn(`[BlockRenderer] Block at index ${index} (${block.blockType}) has no matching blueprint section. Blueprint has ${blueprintSections!.length} sections but blocks has ${blocks.length} entries.`)
+  }
+  const showBreak = section && visualBreaks.includes(index)
+  const bgClass = section ? (backgroundClasses[section.background] || backgroundClasses.default) : ''
+  const wClass = section ? (widthClasses[section.width] || widthClasses.contained) : ''
+  const sClass = section ? spacingClasses[rhythmSpacing] : ''
+  const sectionClasses = section ? `${bgClass} ${sClass}` : ''
+  const animation = section?.animation ?? 'none'
+
+  // Render block content based on type.
+  // Type assertion needed: Block has [key: string]: any but Astro's checker
+  // can't narrow through the switch for component props.
+  const data = block as any
+  const blockContent = (() => {
+    switch (block.blockType) {
+      case 'hero': return <HeroBlock data={data} context={context} headingLevel={baseHeadingLevel} />
+      case 'serviceDetail': return <ServiceDetailBlock data={data} context={context} headingLevel={baseHeadingLevel} />
+      case 'faq': return <FAQBlock data={data} context={context} headingLevel={baseHeadingLevel} />
+      case 'testimonials': return <TestimonialsBlock data={data} context={context} headingLevel={baseHeadingLevel} />
+      case 'cta': return <CTABlock data={data} context={context} headingLevel={baseHeadingLevel} />
+      case 'locationMap': return <LocationMapBlock data={data} context={context} headingLevel={baseHeadingLevel} />
+      case 'content': return <ContentBlock data={data} context={context} headingLevel={baseHeadingLevel} />
+      case 'stats': return <StatsBlock data={data} context={context} headingLevel={baseHeadingLevel} />
+      case 'gallery': return <GalleryBlock data={data} context={context} headingLevel={baseHeadingLevel} />
+      case 'pricing': return <PricingBlock data={data} context={context} headingLevel={baseHeadingLevel} />
+      case 'team': return <TeamBlock data={data} context={context} headingLevel={baseHeadingLevel} />
+      case 'relatedLinks': return <RelatedLinksBlock data={data} context={context} headingLevel={baseHeadingLevel} />
+      default: return null
+    }
+  })()
+
+  // Blueprint-enhanced rendering
+  if (section) {
+    return (
+      <>
+        {showBreak && (
+          <div class="h-px bg-gradient-to-r from-transparent via-border to-transparent max-w-2xl mx-auto" />
+        )}
+        <section class={sectionClasses}>
+          <div class={wClass}>
+            <AnimatedSection animation={animation}>
+              {blockContent}
+            </AnimatedSection>
+          </div>
+        </section>
+      </>
+    )
+  }
+
+  // Legacy rendering (backward compatible)
+  return blockContent
 })}

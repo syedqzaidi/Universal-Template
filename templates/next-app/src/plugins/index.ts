@@ -19,6 +19,7 @@ import { payloadAiPlugin } from '@ai-stack/payloadcms'
 // import { docsReorder } from '@payload-enchants/docs-reorder'
 // import { buildCachedPayload } from '@payload-enchants/cached-local-api'
 import { twentyCrmPlugin } from './twenty-crm'
+import { pluginCollections } from '../lib/plugin-config'
 import type { Plugin } from 'payload'
 
 export function getPlugins(): Plugin[] {
@@ -26,7 +27,7 @@ export function getPlugins(): Plugin[] {
 
   plugins.push(
     nestedDocsPlugin({
-      collections: ['pages', 'services'],
+      collections: pluginCollections.nestedDocs,
       generateLabel: (_, doc) => String((doc as any).title || (doc as any).name),
       generateURL: (docs) =>
         docs.reduce((url, doc) => `${url}/${doc.slug}`, ''),
@@ -35,7 +36,7 @@ export function getPlugins(): Plugin[] {
 
   plugins.push(
     seoPlugin({
-      collections: ['pages', 'services', 'locations', 'service-pages', 'blog-posts'],
+      collections: pluginCollections.seo,
       uploadsCollection: 'media',
       tabbedUI: true,
 
@@ -99,7 +100,7 @@ export function getPlugins(): Plugin[] {
 
   plugins.push(
     redirectsPlugin({
-      collections: ['pages', 'services', 'locations', 'service-pages', 'blog-posts'],
+      collections: pluginCollections.redirects,
       redirectTypes: ['301', '302'],
       overrides: {
         admin: { group: 'Content' },
@@ -109,7 +110,7 @@ export function getPlugins(): Plugin[] {
 
   plugins.push(
     searchPlugin({
-      collections: ['pages', 'services', 'locations', 'service-pages', 'blog-posts'],
+      collections: pluginCollections.search,
       defaultPriorities: {
         pages: 10,
         services: 20,
@@ -139,7 +140,7 @@ export function getPlugins(): Plugin[] {
         date: true,
         payment: true,
       },
-      redirectRelationships: ['pages'],
+      redirectRelationships: pluginCollections.formBuilder.redirectRelationships,
 
       // Wrap emails in a branded HTML template before sending
       beforeEmail: (emailsToSend) => {
@@ -204,17 +205,7 @@ export function getPlugins(): Plugin[] {
 
   plugins.push(
     importExportPlugin({
-      collections: [
-        { slug: 'pages' },
-        { slug: 'media' },
-        { slug: 'services' },
-        { slug: 'locations' },
-        { slug: 'service-pages' },
-        { slug: 'blog-posts' },
-        { slug: 'faqs' },
-        { slug: 'testimonials' },
-        { slug: 'team-members' },
-      ],
+      collections: pluginCollections.importExport.map(slug => ({ slug })),
     }),
   )
 
@@ -345,16 +336,7 @@ export function getPlugins(): Plugin[] {
     plugins.push(
       payloadAiPlugin({
       // Enable AI on content collections (compose, proofread, translate, rephrase, expand, simplify, summarize)
-      collections: {
-        pages: true,
-        'blog-posts': true,
-        services: true,
-        locations: true,
-        'service-pages': true,
-        faqs: true,
-        testimonials: true,
-        'team-members': true,
-      },
+      collections: Object.fromEntries(pluginCollections.ai.map(slug => [slug, true])),
 
       // Route generated images to the media collection
       uploadCollectionSlug: 'media',

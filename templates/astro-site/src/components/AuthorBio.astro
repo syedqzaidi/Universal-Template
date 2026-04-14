@@ -1,0 +1,43 @@
+---
+interface Props {
+  author: any
+}
+
+const { author } = Astro.props
+const photo = typeof author.photo === 'object' ? author.photo : null
+const socialLinks = author.social || author.socialLinks || []
+---
+
+<div class="flex gap-5 p-6 rounded-xl bg-muted/50 border">
+  {photo?.url && (
+    <img
+      src={photo.url}
+      alt={author.name}
+      class="w-20 h-20 rounded-full object-cover flex-shrink-0"
+      width="80"
+      height="80"
+    />
+  )}
+  <div class="flex-1 min-w-0">
+    <a href="/team" class="font-semibold text-lg hover:text-primary transition-colors">
+      {author.name}
+    </a>
+    {author.role && <p class="text-sm text-muted-foreground">{author.role}</p>}
+    {author.bio && <p class="text-sm text-muted-foreground mt-2 line-clamp-3">{author.bio}</p>}
+    {socialLinks.length > 0 && (
+      <div class="flex gap-3 mt-3">
+        {socialLinks.map((social: any) => (
+          <a
+            href={social.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            aria-label={social.platform}
+          >
+            {social.platform}
+          </a>
+        ))}
+      </div>
+    )}
+  </div>
+</div>

@@ -247,6 +247,64 @@ export function generateWebSiteSchema(baseUrl: string) {
   }
 }
 
+export function generateCollectionPageSchema(data: { title: string; description?: string; items?: any[] }, baseUrl: string) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: data.title,
+    description: data.description || '',
+    url: baseUrl,
+    ...(data.items && {
+      hasPart: data.items.map((item: any) => ({
+        '@type': 'WebPage',
+        name: item.title || item.name || '',
+        url: item.url || '',
+      })),
+    }),
+  }
+}
+
+export function generateContactPageSchema(siteSettings: any, baseUrl: string) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'ContactPage',
+    name: 'Contact Us',
+    url: `${baseUrl}/contact`,
+    mainEntity: {
+      '@type': 'Organization',
+      name: siteSettings.siteName,
+      ...(siteSettings.phone && { telephone: siteSettings.phone }),
+      ...(siteSettings.email && { email: siteSettings.email }),
+    },
+  }
+}
+
+export function generateWebPageSchema(data: { title: string; description?: string; slug?: string }, baseUrl: string) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    name: data.title,
+    description: data.description || '',
+    url: `${baseUrl}/${data.slug || ''}`,
+  }
+}
+
+export function generatePersonSchema(member: any, baseUrl: string) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Person',
+    name: member.name,
+    jobTitle: member.role || undefined,
+    description: member.bio || undefined,
+    image: typeof member.photo === 'object' ? member.photo?.url : undefined,
+    url: `${baseUrl}/team`,
+    ...(member.email && { email: member.email }),
+    ...(member.social?.length && {
+      sameAs: member.social.map((s: any) => s.url),
+    }),
+  }
+}
+
 export function extractTextFromRichText(richText: any): string {
   if (!richText?.root?.children) return ''
   return richText.root.children

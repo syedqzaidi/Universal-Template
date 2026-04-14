@@ -1,0 +1,46 @@
+---
+import SEOLayout from '../layouts/SEOLayout.astro'
+import BlockRenderer from '../components/blocks/BlockRenderer.astro'
+import Breadcrumbs from '../components/Breadcrumbs.astro'
+import { payload } from '../lib/payload'
+
+let page: any = null
+let siteName = 'Our Company'
+
+try {
+  const pageResult = await payload.getPageBySlug('about')
+  page = pageResult
+} catch {}
+
+const siteUrl = import.meta.env.SITE_URL || 'https://example.com'
+const blocks = page?.layout || []
+---
+
+<SEOLayout
+  title={page?.meta?.title || `About Us | ${siteName}`}
+  description={page?.meta?.description || `Learn about ${siteName} — our story, mission, and team.`}
+  canonicalUrl={`${siteUrl}/about`}
+  pageType="page"
+  schemaData={{ title: `About ${siteName}`, slug: 'about' }}
+>
+  <div class="container mx-auto px-4">
+    <Breadcrumbs items={[
+      { name: 'Home', url: '/' },
+      { name: 'About', url: '/about' },
+    ]} />
+  </div>
+
+  <div class="container mx-auto px-4 py-12">
+    <h1 class="text-4xl font-bold mb-8">About Us</h1>
+
+    {blocks.length > 0 ? (
+      <BlockRenderer blocks={blocks} />
+    ) : (
+      <div class="prose prose-lg max-w-none">
+        <p class="text-muted-foreground text-center py-12">
+          About page content coming soon.
+        </p>
+      </div>
+    )}
+  </div>
+</SEOLayout>

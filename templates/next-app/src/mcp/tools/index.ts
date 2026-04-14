@@ -14,6 +14,7 @@ import { pseoArchitectureTools } from './pseo-architecture'
 import { pseoLifecycleTools } from './pseo-lifecycle'
 import { pseoLocalSeoTools } from './pseo-local-seo'
 import { pseoLaunchTools } from './pseo-launch'
+import { generationTools } from './generation'
 
 export const allTools = [
   ...contentLifecycleTools,
@@ -32,4 +33,5 @@ export const allTools = [
   ...pseoLifecycleTools,
   ...pseoLocalSeoTools,
   ...pseoLaunchTools,
+  ...generationTools,
 ]

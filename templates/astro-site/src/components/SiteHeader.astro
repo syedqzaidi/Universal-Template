@@ -1,9 +1,37 @@
 ---
 // src/components/SiteHeader.astro
 import { payload } from '../lib/payload'
+import { primaryNav } from '../lib/nav-config'
 
-const { docs: services } = await payload.getAllServices({ sort: 'name' })
-const siteSettings = await payload.getSiteSettings()
+// Fetch dynamic children for nav items that have a dynamic config
+let dynamicData: Record<string, any[]> = {}
+let siteSettings: any = { siteName: 'Site' }
+
+try {
+  const collectionFetchers: Record<string, (params?: Record<string, string>) => Promise<{ docs: any[] }>> = {
+    'services': (p) => payload.getAllServices(p),
+    'locations': (p) => payload.getAllLocations(p),
+    'blog-posts': (p) => payload.getAllBlogPosts(p),
+    'pages': (p) => payload.getAllPages(p),
+  }
+
+  await Promise.all(
+    primaryNav
+      .filter((item) => item.dynamic)
+      .map(async (item) => {
+        const { collection } = item.dynamic!
+        const fetcher = collectionFetchers[collection]
+        if (fetcher) {
+          const { docs } = await fetcher({ sort: item.dynamic!.labelField })
+          dynamicData[collection] = docs
+        }
+      }),
+  )
+
+  siteSettings = await payload.getSiteSettings()
+} catch {
+  // Payload unavailable — render with fallback empty data
+}
 ---
 
 <header class="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -26,25 +54,27 @@ const siteSettings = await payload.getSiteSettings()
     </button>
 
     <div class="hidden md:flex items-center gap-6">
-      <!-- Services dropdown -->
-      <div class="relative group">
-        <a href="/services" class="font-medium hover:text-primary transition-colors" aria-haspopup="true">Services</a>
-        <div class="absolute top-full left-0 pt-2 hidden group-hover:block group-focus-within:block">
-          <ul class="bg-background border rounded-lg shadow-lg p-2 min-w-48">
-            {services.map((service) => (
-              <li>
-                <a href={`/services/${service.slug}`} class="block px-4 py-2 rounded hover:bg-muted transition-colors">
-                  {service.name}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
-
-      <a href="/locations" class="font-medium hover:text-primary transition-colors">Locations</a>
-      <a href="/blog" class="font-medium hover:text-primary transition-colors">Blog</a>
-      <a href="/contact" class="font-medium hover:text-primary transition-colors">Contact</a>
+      {primaryNav.map((item) => {
+        const dynamicDocs = item.dynamic ? dynamicData[item.dynamic.collection] : null
+        return dynamicDocs ? (
+          <div class="relative group">
+            <a href={item.href} class="font-medium hover:text-primary transition-colors" aria-haspopup="true">{item.label}</a>
+            <div class="absolute top-full left-0 pt-2 hidden group-hover:block group-focus-within:block">
+              <ul class="bg-background border rounded-lg shadow-lg p-2 min-w-48">
+                {dynamicDocs.map((doc) => (
+                  <li>
+                    <a href={`${item.dynamic!.pathPrefix}/${doc.slug}`} class="block px-4 py-2 rounded hover:bg-muted transition-colors">
+                      {doc[item.dynamic!.labelField]}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        ) : (
+          <a href={item.href} class="font-medium hover:text-primary transition-colors">{item.label}</a>
+        )
+      })}
 
       {siteSettings.phone && (
         <a href={`tel:${siteSettings.phone}`} class="font-semibold text-primary">
@@ -57,13 +87,17 @@ const siteSettings = await payload.getSiteSettings()
   <!-- Mobile menu (hidden by default, toggled via JS) -->
   <div class="hidden md:hidden border-t" data-mobile-menu>
     <div class="container py-4 space-y-3">
-      <a href="/services" class="block font-medium py-2 hover:text-primary">Services</a>
-      {services.map((service) => (
-        <a href={`/services/${service.slug}`} class="block pl-4 py-1 text-sm text-muted-foreground hover:text-foreground">{service.name}</a>
-      ))}
-      <a href="/locations" class="block font-medium py-2 hover:text-primary">Locations</a>
-      <a href="/blog" class="block font-medium py-2 hover:text-primary">Blog</a>
-      <a href="/contact" class="block font-medium py-2 hover:text-primary">Contact</a>
+      {primaryNav.map((item) => {
+        const dynamicDocs = item.dynamic ? dynamicData[item.dynamic.collection] : null
+        return (
+          <>
+            <a href={item.href} class="block font-medium py-2 hover:text-primary">{item.label}</a>
+            {dynamicDocs && dynamicDocs.map((doc) => (
+              <a href={`${item.dynamic!.pathPrefix}/${doc.slug}`} class="block pl-4 py-1 text-sm text-muted-foreground hover:text-foreground">{doc[item.dynamic!.labelField]}</a>
+            ))}
+          </>
+        )
+      })}
       {siteSettings.phone && (
         <a href={`tel:${siteSettings.phone}`} class="block font-semibold text-primary py-2">{siteSettings.phone}</a>
       )}

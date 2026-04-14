@@ -256,7 +256,7 @@ export function startUI(args) {
     // API: Create project
     if (url.pathname === '/api/create' && req.method === 'POST') {
       const body = await readBody(req);
-      const { projectName, location, services, preset } = JSON.parse(body);
+      const { projectName, location, services, preset, businessDescription } = JSON.parse(body);
 
       if (createInProgress) {
         res.writeHead(409, { 'Content-Type': 'application/json' });
@@ -307,7 +307,7 @@ export function startUI(args) {
         `rm -rf '${safeName}/.git'`,
         `cd '${safeName}'`,
         `pnpm install`,
-        `node scripts/create-project.mjs --name='${safeName}' ${flags} --no-install`,
+        `node scripts/create-project.mjs --name='${safeName}' ${flags} --no-install${businessDescription ? ` --business-description='${businessDescription.replace(/'/g, "'\\''")}'` : ''}`,
         `bash scripts/init-project.sh '${safeName}'`,
       ].join(' && ');
 
@@ -408,6 +408,122 @@ export function startUI(args) {
     if (url.pathname === '/api/health') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(getDockerHealth()));
+      return;
+    }
+
+    // API: Check if Claude Code CLI is available
+    if (url.pathname === '/api/claude-check') {
+      try {
+        execSync('which claude', { timeout: 5000, stdio: 'pipe' });
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ available: true }));
+      } catch {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ available: false, install: 'npm install -g @anthropic-ai/claude-code' }));
+      }
+      return;
+    }
+
+    // API: Generate website using Claude Code CLI
+    if (url.pathname === '/api/generate' && req.method === 'POST') {
+      const body = await readBody(req);
+      const { projectPath: projPath, businessDescription: desc } = JSON.parse(body);
+
+      if (!projPath || !fs.existsSync(projPath)) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Invalid project path' }));
+        return;
+      }
+
+      if (!desc || !desc.trim()) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Business description is required' }));
+        return;
+      }
+
+      // Check Claude Code is available
+      try {
+        execSync('which claude', { timeout: 5000, stdio: 'pipe' });
+      } catch {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Claude Code CLI not found. Install: npm install -g @anthropic-ai/claude-code' }));
+        return;
+      }
+
+      if (processes.generate) {
+        res.writeHead(409, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Generation already in progress' }));
+        return;
+      }
+
+      broadcast('gen-status', 'starting');
+
+      // Build the prompt that Claude Code will execute
+      const safeDesc = desc.replace(/'/g, "'\\''").replace(/\n/g, ' ');
+
+      // Use claude --print for non-interactive mode with --dangerously-skip-permissions
+      // to allow file writes without prompting
+      const claudeCmd = `claude --print --dangerously-skip-permissions -p 'You are generating a complete website for this business. Follow the generation protocol in the project CLAUDE.md.
+
+Business: ${safeDesc}
+
+Read .generation-manifest.json for the saved business description. Read CLAUDE.md for the full generation protocol and available MCP tools. Then execute the 10-phase generation protocol:
+
+1. Analyze the business - identify entities, relationships, cross-products, CRM pipeline, email sequences
+2. Generate Payload CMS collections for each entity
+3. Generate cross-product collections if applicable
+4. Generate any new blocks needed
+5. Generate Astro pages for each route
+6. Generate JSON-LD schemas
+7. Configure CRM pipeline (deferred if Twenty not available)
+8. Generate email templates (deferred if Resend not available)
+9. Seed collections with realistic content
+10. Generate navigation config and validate builds
+
+Use the MCP tools: analyze_business, generate_collection, generate_cross_product_collection, generate_page, generate_block, generate_schema, configure_crm_pipeline, generate_email_sequence, seed_collection, generate_nav, validate_generation.
+
+All generated code must compile. Update .generation-manifest.json after each step.'`;
+
+      const proc = spawn('bash', ['-c', claudeCmd], {
+        cwd: projPath,
+        env: { ...process.env, FORCE_COLOR: '0' },
+      });
+
+      processes.generate = { proc, port: null };
+
+      proc.stdout.on('data', d => {
+        broadcast('gen-log', d.toString());
+      });
+      proc.stderr.on('data', d => {
+        broadcast('gen-log', d.toString());
+      });
+      proc.on('error', err => {
+        broadcast('gen-log', `Failed: ${err.message}\n`);
+        broadcast('gen-done', { code: 1, error: err.message });
+        delete processes.generate;
+      });
+      proc.on('close', code => {
+        broadcast('gen-done', { code });
+        delete processes.generate;
+      });
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ started: true }));
+      return;
+    }
+
+    // API: Stop generation
+    if (url.pathname === '/api/stop-generate' && req.method === 'POST') {
+      if (processes.generate) {
+        processes.generate.proc.kill('SIGTERM');
+        setTimeout(() => {
+          if (processes.generate) {
+            processes.generate.proc.kill('SIGKILL');
+          }
+        }, 5000);
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ stopped: true }));
       return;
     }
 
@@ -530,12 +646,22 @@ export function startUI(args) {
           if (key && val) ports[key.trim()] = parseInt(val.trim(), 10);
         }
       } catch {}
+      // Detect generation manifest
+      let hasManifest = false;
+      let manifestDescription = '';
+      const manifestPath = path.join(projPath, '.generation-manifest.json');
+      try {
+        const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+        hasManifest = true;
+        manifestDescription = manifest.businessModel || '';
+      } catch {}
+
       currentProjectPath = projPath;
       if (detectedServices.includes('supabase') || detectedServices.includes('twenty')) {
         startHealthPolling();
       }
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ valid: true, services: detectedServices, ports, portsFileExists, projectPath: projPath }));
+      res.end(JSON.stringify({ valid: true, services: detectedServices, ports, portsFileExists, projectPath: projPath, hasManifest, manifestDescription }));
       return;
     }
 

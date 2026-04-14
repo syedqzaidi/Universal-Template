@@ -1,10 +1,50 @@
 ---
 // src/components/SiteFooter.astro
 import { payload } from '../lib/payload'
+import { footerSections } from '../lib/nav-config'
 
-const { docs: locations } = await payload.getAllLocations({ sort: 'displayName', limit: '20' })
-const siteSettings = await payload.getSiteSettings()
+// Fetch dynamic data for footer sections that need it
+let resolvedSections: any[] = footerSections.map((section) => ({ ...section, resolvedLinks: section.links || [] }))
+let siteSettings: any = { siteName: 'Site' }
 const currentYear = new Date().getFullYear()
+
+try {
+  const collectionFetchers: Record<string, (params?: Record<string, string>) => Promise<{ docs: any[] }>> = {
+    'services': (p) => payload.getAllServices(p),
+    'locations': (p) => payload.getAllLocations(p),
+    'blog-posts': (p) => payload.getAllBlogPosts(p),
+    'pages': (p) => payload.getAllPages(p),
+  }
+
+  resolvedSections = await Promise.all(
+    footerSections.map(async (section) => {
+      if (section.dynamic) {
+        const fetcher = collectionFetchers[section.dynamic.collection]
+        if (fetcher) {
+          const params: Record<string, string> = {
+            sort: section.dynamic.labelField,
+          }
+          if (section.dynamic.limit) {
+            params.limit = String(section.dynamic.limit)
+          }
+          const { docs } = await fetcher(params)
+          return {
+            ...section,
+            resolvedLinks: docs.map((doc) => ({
+              label: doc[section.dynamic!.labelField],
+              href: `${section.dynamic!.pathPrefix}/${doc.slug}`,
+            })),
+          }
+        }
+      }
+      return { ...section, resolvedLinks: section.links || [] }
+    }),
+  )
+
+  siteSettings = await payload.getSiteSettings()
+} catch {
+  // Payload unavailable — render with fallback empty data
+}
 ---
 
 <footer class="border-t bg-muted/50 mt-auto">
@@ -28,32 +68,18 @@ const currentYear = new Date().getFullYear()
         )}
       </div>
 
-      <!-- Locations -->
-      <div>
-        <p class="font-semibold mb-3">Locations</p>
-        <nav aria-label="Footer navigation - Locations">
-          <ul class="space-y-2 text-sm">
-            {locations.map((location) => (
-              <li><a href={`/locations/${location.slug}`} class="text-muted-foreground hover:text-foreground transition-colors">{location.displayName}</a></li>
-            ))}
-          </ul>
-        </nav>
-      </div>
-
-      <!-- Quick links -->
-      <div>
-        <p class="font-semibold mb-3">Company</p>
-        <nav aria-label="Footer navigation - Company">
-          <ul class="space-y-2 text-sm">
-            <li><a href="/team" class="text-muted-foreground hover:text-foreground">Our Team</a></li>
-            <li><a href="/blog" class="text-muted-foreground hover:text-foreground">Blog</a></li>
-            <li><a href="/faq" class="text-muted-foreground hover:text-foreground">FAQ</a></li>
-            <li><a href="/contact" class="text-muted-foreground hover:text-foreground">Contact</a></li>
-            <li><a href="/privacy" class="text-muted-foreground hover:text-foreground">Privacy Policy</a></li>
-            <li><a href="/terms" class="text-muted-foreground hover:text-foreground">Terms of Service</a></li>
-          </ul>
-        </nav>
-      </div>
+      {resolvedSections.map((section) => (
+        <div>
+          <p class="font-semibold mb-3">{section.heading}</p>
+          <nav aria-label={`Footer navigation - ${section.heading}`}>
+            <ul class="space-y-2 text-sm">
+              {section.resolvedLinks.map((link: any) => (
+                <li><a href={link.href} class="text-muted-foreground hover:text-foreground transition-colors">{link.label}</a></li>
+              ))}
+            </ul>
+          </nav>
+        </div>
+      ))}
 
       <!-- Social links -->
       <div>
@@ -61,7 +87,7 @@ const currentYear = new Date().getFullYear()
           <>
             <p class="font-semibold mb-3">Follow Us</p>
             <div class="flex gap-3">
-              {siteSettings.socialLinks.map((social) => (
+              {siteSettings.socialLinks.map((social: any) => (
                 <a href={social.url} target="_blank" rel="noopener noreferrer" class="text-muted-foreground hover:text-foreground transition-colors" aria-label={social.platform}>
                   {social.platform}
                 </a>

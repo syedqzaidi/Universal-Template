@@ -77,7 +77,7 @@ docker compose -f docker/twenty/docker-compose.yml up -d
 - **Payload CMS** lives inside `templates/next-app/` — collections in `src/collections/`, config at `src/payload.config.ts`
 - **Astro fetches from Payload** via REST API client in `packages/shared/src/payload/client.ts` — all CMS pages are SSR
 - **Twenty CRM** integration: API client at `src/lib/twenty/`, webhooks at `src/webhooks/`
-- **MCP tools** (61 tools, 8 prompts) at `templates/next-app/src/mcp/` — AI-powered CMS operations
+- **MCP tools** (72 tools, 9 prompts) at `templates/next-app/src/mcp/` — AI-powered CMS operations + website generation
 
 ## Port Allocation System
 
@@ -160,6 +160,82 @@ Both templates use shadcn/ui with Radix UI primitives. Components live in `src/c
 ## Node Requirements
 
 Root: >=20, Astro: >=22.12.0, AI Website Cloner: >=24
+
+## Universal Generation Platform
+
+A two-layer system that generates complete client websites from natural language business descriptions.
+
+### Layer 1 (Universal Primitives)
+
+Pre-built infrastructure that never changes:
+- **3 universal collections** (Pages, Media, Users) in `collections/_universal/`
+- **12 universal blocks** in `blocks/_universal/`
+- **5 registries** (blueprint, schema, block, sitemap, nav) in `astro-site/src/lib/`
+- **12 PageBlueprints** in `astro-site/src/lib/blueprints/` defining section structure, CRO rules, and visual rhythm
+- **11 universal components** (AnimatedSection, FilterBar, Pagination, etc.)
+- **BlockRenderer** enhanced with blueprint section metadata support
+
+### Layer 2 (Generation Engine — 12 MCP Tools)
+
+| Tool | Purpose |
+|------|---------|
+| `analyze_business` | Parse business description → BusinessModel JSON |
+| `generate_collection` | Create Payload collection .ts file + auto-wire plugins/analytics |
+| `generate_cross_product_collection` | Entity × entity pSEO collections (quality gate: 65) |
+| `generate_page` | Create Astro SSR page with blueprint sections |
+| `generate_block` | Create Payload block config + Astro component |
+| `generate_schema` | Add JSON-LD schema.org generator |
+| `configure_crm_pipeline` | Twenty CRM pipeline (defers if unavailable, writes sync config) |
+| `apply_crm_config` | Apply deferred CRM config when Twenty becomes available |
+| `generate_email_sequence` | React Email template + webhook trigger mapping |
+| `seed_collection` | Populate collections (blueprint-aware layout, cleanup support) |
+| `generate_nav` | Header/footer navigation config |
+| `validate_generation` | Run builds, verify TypeScript |
+
+### Generation Protocol
+
+Use the `generation_protocol` MCP prompt to start a generation. Flow:
+1. Analyze business → 2. Generate collections → 3. Cross-products → 4. Blocks → 5. Routes → 6. Schemas → 7. CRM/email → 8. Seed content → 9. Nav → 10. Validate
+
+### Manifest System
+
+- `.generation-manifest.json` tracks step completion and generated files
+- `.seed-manifest.json` tracks seeded CMS entries
+- Supports resume from interruption and cleanup
+
+### PageBlueprint System
+
+12 built-in blueprints: homepage, entity-detail, entity-listing, cross-product, blog-post, blog-index, team, faq, contact, about, landing-page, 404.
+
+Each blueprint defines:
+- **Sections** with background/width/animation tokens
+- **CRO** config (CTA frequency, trust signal positions)
+- **SEO** config (schema types, meta patterns)
+- **Rhythm** (spacing, background alternation, visual breaks)
+
+Section metadata is applied by BlockRenderer at render time — Payload data stays clean.
+
+### Plugin Configuration
+
+`src/lib/plugin-config.ts` centralizes all plugin collection arrays. Generation tools append to these arrays when creating new collections.
+
+### Reserved Slugs
+
+Never use for generated collections: `pages, media, users, contacts, search, redirects, forms, form-submissions, payload-preferences, payload-migrations, plugin-ai-instructions`
+
+### Project Wizard Integration
+
+`scripts/create-project.mjs` includes a "Describe your business" prompt when Payload is selected. The description is saved to `.generation-manifest.json` for the generation protocol to use. CLI: `--business-description="..."`.
+
+### E2E Testing
+
+```bash
+node scripts/e2e-generation-test.mjs           # Run all validation tests (77 checks)
+node scripts/e2e-generation-test.mjs dog-grooming  # Single scenario
+node scripts/e2e-generation-test.mjs edge-cases    # Edge case tests only
+```
+
+Tests validate: file existence, blueprint structure, component inventory, TypeScript compilation, scenario definitions (3 business types), edge cases (reserved slugs, 200-page cap, manifest system).
 
 ## Next.js 16 Warning
 

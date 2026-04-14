@@ -17,14 +17,23 @@ import node from '@astrojs/node';
 
 // Load .env.local before config — Astro hasn't loaded it yet at config time.
 // Parse just the vars we need; no external dependencies required.
+// Try local .env.local first, fall back to monorepo root (../../.env.local)
+// in case init-project.sh hasn't distributed the file yet.
 if (!process.env.SITE_URL) {
-  try {
-    const envFile = readFileSync(resolve(process.cwd(), '.env.local'), 'utf-8');
-    for (const line of envFile.split('\n')) {
-      const match = line.match(/^([A-Z_]+)=(.*)$/);
-      if (match && !process.env[match[1]]) process.env[match[1]] = match[2].trim();
-    }
-  } catch {}
+  const candidates = [
+    resolve(process.cwd(), '.env.local'),
+    resolve(process.cwd(), '../../.env.local'),
+  ];
+  for (const envPath of candidates) {
+    try {
+      const envFile = readFileSync(envPath, 'utf-8');
+      for (const line of envFile.split('\n')) {
+        const match = line.match(/^([A-Z_]+)=(.*)$/);
+        if (match && !process.env[match[1]]) process.env[match[1]] = match[2].trim();
+      }
+      break; // stop after first successful read
+    } catch {}
+  }
 }
 
 // Derive port from SITE_URL so there's a single source of truth.

@@ -1,0 +1,98 @@
+---
+import type { AnimationToken } from '../types/blueprint'
+
+interface Props {
+  animation: AnimationToken
+  class?: string
+}
+
+const { animation, class: className = '' } = Astro.props
+const isAnimated = animation !== 'none'
+---
+
+{isAnimated ? (
+  <div data-animate={animation} data-animated="false" class={className}>
+    <slot />
+  </div>
+) : (
+  <div class={className}>
+    <slot />
+  </div>
+)}
+
+{isAnimated && (
+  <script>
+    function initAnimations() {
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      if (prefersReducedMotion) return
+
+      const elements = document.querySelectorAll('[data-animate]:not([data-animated="true"])')
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              const el = entry.target as HTMLElement
+              el.dataset.animated = 'true'
+              const type = el.dataset.animate
+
+              if (type === 'fade-in') {
+                el.style.transition = 'opacity 0.6s ease-out'
+                el.style.opacity = '1'
+              } else if (type === 'fade-up') {
+                el.style.transition = 'opacity 0.5s ease-out, transform 0.5s ease-out'
+                el.style.opacity = '1'
+                el.style.transform = 'translateY(0)'
+              } else if (type === 'stagger') {
+                const children = el.children
+                for (let i = 0; i < children.length; i++) {
+                  const child = children[i] as HTMLElement
+                  const delay = Math.min(i * 0.1, 0.5)
+                  child.style.transition = `opacity 0.5s ease-out ${delay}s, transform 0.5s ease-out ${delay}s`
+                  child.style.opacity = '1'
+                  child.style.transform = 'translateY(0)'
+                }
+              }
+
+              observer.unobserve(el)
+            }
+          })
+        },
+        { threshold: 0.1 }
+      )
+
+      elements.forEach((el) => {
+        const htmlEl = el as HTMLElement
+        const type = htmlEl.dataset.animate
+
+        if (type === 'fade-in') {
+          htmlEl.style.opacity = '0'
+        } else if (type === 'fade-up') {
+          htmlEl.style.opacity = '0'
+          htmlEl.style.transform = 'translateY(30px)'
+        } else if (type === 'stagger') {
+          for (let i = 0; i < htmlEl.children.length; i++) {
+            const child = htmlEl.children[i] as HTMLElement
+            child.style.opacity = '0'
+            child.style.transform = 'translateY(30px)'
+          }
+        }
+
+        observer.observe(htmlEl)
+      })
+    }
+
+    // Run on initial load and on Astro view transitions
+    initAnimations()
+    document.addEventListener('astro:page-load', initAnimations)
+  </script>
+)}
+
+<style is:global>
+  @keyframes blueprint-fallback-reveal {
+    to { opacity: 1; transform: none; }
+  }
+  [data-animate]:not([data-animated="true"]) {
+    animation: blueprint-fallback-reveal 0s 4s forwards;
+  }
+</style>

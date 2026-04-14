@@ -1,0 +1,62 @@
+---
+interface Props {
+  currentPage: number
+  totalPages: number
+  baseUrl: string
+}
+
+const { currentPage, totalPages, baseUrl } = Astro.props
+
+function getPageUrl(page: number): string {
+  return page === 1 ? baseUrl : `${baseUrl}?page=${page}`
+}
+
+// Calculate visible page range
+const pages: number[] = []
+for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) {
+  pages.push(i)
+}
+---
+
+{totalPages > 1 && (
+  <nav aria-label="Pagination" class="flex items-center justify-center gap-2 mt-12">
+    {currentPage > 3 && (
+      <>
+        <a href={getPageUrl(1)} class="px-3 py-2 rounded-lg text-sm hover:bg-muted transition-colors">1</a>
+        <span class="px-2 text-muted-foreground">...</span>
+      </>
+    )}
+
+    {currentPage > 1 && (
+      <a href={getPageUrl(currentPage - 1)} class="px-3 py-2 rounded-lg text-sm hover:bg-muted transition-colors" aria-label="Previous page">
+        &larr; Prev
+      </a>
+    )}
+
+    {pages.map((page) => (
+      <a
+        href={getPageUrl(page)}
+        class:list={[
+          'px-3 py-2 rounded-lg text-sm transition-colors',
+          page === currentPage ? 'bg-primary text-primary-foreground font-medium' : 'hover:bg-muted',
+        ]}
+        aria-current={page === currentPage ? 'page' : undefined}
+      >
+        {page}
+      </a>
+    ))}
+
+    {currentPage < totalPages && (
+      <a href={getPageUrl(currentPage + 1)} class="px-3 py-2 rounded-lg text-sm hover:bg-muted transition-colors" aria-label="Next page">
+        Next &rarr;
+      </a>
+    )}
+
+    {currentPage < totalPages - 2 && (
+      <>
+        <span class="px-2 text-muted-foreground">...</span>
+        <a href={getPageUrl(totalPages)} class="px-3 py-2 rounded-lg text-sm hover:bg-muted transition-colors">{totalPages}</a>
+      </>
+    )}
+  </nav>
+)}

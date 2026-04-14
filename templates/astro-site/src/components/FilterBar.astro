@@ -1,0 +1,33 @@
+---
+interface Props {
+  filters: string[]
+  activeFilter?: string
+  baseUrl: string
+}
+
+const { filters, baseUrl } = Astro.props
+const activeFilter = Astro.props.activeFilter ?? Astro.url.searchParams.get('filter') ?? ''
+---
+
+<nav aria-label="Filter" class="flex flex-wrap gap-2 mb-8">
+  <a
+    href={baseUrl}
+    class:list={[
+      'px-4 py-2 rounded-full text-sm font-medium transition-colors',
+      !activeFilter ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80',
+    ]}
+  >
+    All
+  </a>
+  {filters.map((filter) => (
+    <a
+      href={`${baseUrl}?filter=${encodeURIComponent(filter)}`}
+      class:list={[
+        'px-4 py-2 rounded-full text-sm font-medium transition-colors',
+        activeFilter === filter ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80',
+      ]}
+    >
+      {filter}
+    </a>
+  ))}
+</nav>

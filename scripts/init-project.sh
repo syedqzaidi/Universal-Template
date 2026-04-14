@@ -164,15 +164,7 @@ ok "PREVIEW_SECRET generated (${#PREVIEW_SECRET} hex chars)"
 # ---------------------------------------------------------------------------
 section "Configuring unique ports"
 
-# Astro port — astro.config.mjs server.port
-ASTRO_CONFIG="${PROJECT_ROOT}/templates/astro-site/astro.config.mjs"
-if [[ -f "${ASTRO_CONFIG}" ]]; then
-  sed -i.tmp "s/port: [0-9]*/port: ${PORT_ASTRO}/" "${ASTRO_CONFIG}"
-  rm -f "${ASTRO_CONFIG}.tmp"
-  ok "Astro port set to ${PORT_ASTRO}"
-else
-  warn "astro.config.mjs not found at ${ASTRO_CONFIG} — skipping Astro port update"
-fi
+# Astro port — derived at runtime from SITE_URL in .env.local (no config file patching needed)
 
 # Next.js port — package.json dev script  --port flag
 NEXTJS_PKG="${PROJECT_ROOT}/templates/next-app/package.json"

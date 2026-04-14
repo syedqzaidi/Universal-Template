@@ -38,6 +38,7 @@ function parseArgs() {
     else if (arg === '--all') parsed.flags = new Set(['astro', 'nextjs', 'supabase', 'payload', 'twenty', 'sentry', 'posthog', 'resend']);
     else if (arg.startsWith('--preset=')) parsed.preset = arg.split('=')[1];
     else if (arg.startsWith('--name=')) parsed.name = arg.split('=')[1];
+    else if (arg.startsWith('--business-description=')) parsed.businessDescription = arg.split('=').slice(1).join('=');
     else if (arg.startsWith('--')) parsed.flags.add(arg.slice(2));
     else if (!parsed.name) parsed.name = arg; // positional = project name
   }
@@ -108,6 +109,7 @@ ${bold('Integrations:')}
 ${bold('Options:')}
   --all                Include everything
   --name=<name>        Project name (or pass as first positional arg)
+  --business-description="..." Describe your business for AI generation
   --no-install         Skip pnpm install after removal
   --no-init            Skip calling init-project.sh
   --help, -h           Show this help
@@ -640,6 +642,7 @@ async function main() {
 
   let projectName;
   let selections;
+  let businessDescription = '';
 
   // ── Non-interactive mode ──────────────────────────────────────────────────
   if (!cliArgs.interactive) {
@@ -667,6 +670,7 @@ async function main() {
     }
 
     selections = buildSelectionsFromFlags(serviceFlags);
+    businessDescription = cliArgs.businessDescription || '';
 
     // Validate
     const errors = validateSelections(selections);
@@ -836,6 +840,25 @@ async function main() {
         { onCancel }
       );
       payloadIntegration = { urlPattern, rebuildMode, localization };
+    }
+
+    // 3c. Business description for generation (if Payload is selected)
+    if (backend.includes('payload')) {
+      console.log('')
+      console.log(dim('  Describe your business for AI-powered website generation.'))
+      console.log(dim('  This powers automatic collection, page, and content generation.'))
+      console.log(dim('  Skip this step to configure manually later.'))
+      console.log('')
+      const { description } = await prompts(
+        {
+          type: 'text',
+          name: 'description',
+          message: 'Describe your business (or press Enter to skip)',
+          initial: '',
+        },
+        { onCancel }
+      )
+      businessDescription = description || ''
     }
 
     // 4. Integrations
@@ -1017,8 +1040,72 @@ async function main() {
     console.log(`\n${dim('Skipping pnpm install (--no-install).')}`);
   }
 
+  // Write business description for generation engine (if provided)
+  if (businessDescription) {
+    const manifest = {
+      businessModel: businessDescription,
+      startedAt: new Date().toISOString(),
+      steps: {
+        analyze: { status: 'pending' },
+        collections: { status: 'pending' },
+        crossProducts: { status: 'pending' },
+        blocks: { status: 'pending' },
+        routes: { status: 'pending' },
+        schemas: { status: 'pending' },
+        crm: { status: 'pending' },
+        email: { status: 'pending' },
+        seed: { status: 'pending' },
+        nav: { status: 'pending' },
+        validate: { status: 'pending' },
+      },
+      generatedFiles: [],
+    }
+    await fs.writeFile(
+      path.join(ROOT, '.generation-manifest.json'),
+      JSON.stringify(manifest, null, 2)
+    )
+    console.log(`  ${green('Saved:')} .generation-manifest.json ${dim('(business description for AI generation)')}`)
+    console.log('')
+    console.log(dim('  To generate your website, run:'))
+    console.log(dim('    Use the generation_protocol MCP prompt with your business description'))
+  }
+
+  // ── Distribute .env.local to template directories ────────────────────────
+  // init-project.sh does this too, but if the user skips init or opens an
+  // existing project, templates won't have their copies. Sync from root if
+  // a root .env.local already exists.
+  await distributeEnvLocal();
+
   // ── Summary ────────────────────────────────────────────────────────────────
   printSummary(selections, projectName);
+}
+
+async function distributeEnvLocal() {
+  const rootEnv = path.join(ROOT, '.env.local');
+  try {
+    await fs.access(rootEnv);
+  } catch {
+    return; // no root .env.local yet — init-project.sh will create and distribute it
+  }
+
+  const targets = [
+    path.join(ROOT, 'templates', 'astro-site'),
+    path.join(ROOT, 'templates', 'next-app'),
+  ];
+
+  for (const dir of targets) {
+    const dest = path.join(dir, '.env.local');
+    try {
+      await fs.access(dir); // directory exists?
+      await fs.access(dest); // already has .env.local?
+    } catch {
+      try {
+        await fs.access(dir); // directory exists but no .env.local
+        await fs.copyFile(rootEnv, dest);
+        console.log(`  ${green('Synced:')} ${path.relative(ROOT, dest)}`);
+      } catch {} // directory doesn't exist (framework removed) — skip
+    }
+  }
 }
 
 async function renameProject(projectName) {

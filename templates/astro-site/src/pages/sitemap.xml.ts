@@ -1,60 +1,42 @@
 import type { APIRoute } from 'astro'
 import { payload } from '../lib/payload'
+import { sitemapCollections } from '../lib/sitemap-config'
+
+// Maps collection slugs to their payload client fetch methods.
+// Each method returns { docs: T[] } with the correct depth and filters.
+const collectionFetchers: Record<string, () => Promise<{ docs: any[] }>> = {
+  'services': () => payload.getAllServices(),
+  'locations': () => payload.getAllLocations(),
+  'service-pages': () => payload.getAllServicePages(),
+  'blog-posts': () => payload.getAllBlogPosts(),
+  'pages': () => payload.getAllPages(),
+}
 
 export const GET: APIRoute = async () => {
-
-  const [
-    { docs: services },
-    { docs: locations },
-    { docs: servicePages },
-    { docs: blogPosts },
-    { docs: pages },
-  ] = await Promise.all([
-    payload.getAllServices(),
-    payload.getAllLocations(),
-    payload.getAllServicePages(),
-    payload.getAllBlogPosts(),
-    payload.getAllPages(),
-  ])
-
   const baseUrl = import.meta.env.SITE_URL || 'https://example.com'
 
-  const urls = [
-    { loc: baseUrl, changefreq: 'weekly', priority: 1.0 },
-    ...services.map((s) => ({
-      loc: `${baseUrl}/services/${s.slug}`,
-      lastmod: s.updatedAt,
-      changefreq: 'monthly' as const,
-      priority: 0.8,
-    })),
-    ...locations.map((l) => ({
-      loc: `${baseUrl}/locations/${l.slug}`,
-      lastmod: l.updatedAt,
-      changefreq: 'monthly' as const,
-      priority: 0.7,
-    })),
-    ...servicePages.map((sp) => {
-      const svc = typeof sp.service === 'object' ? sp.service.slug : ''
-      const loc = typeof sp.location === 'object' ? sp.location.slug : ''
-      return {
-        loc: `${baseUrl}/services/${svc}/${loc}`,
-        lastmod: sp.updatedAt,
-        changefreq: 'monthly' as const,
-        priority: 0.6,
+  // Fetch all collections in parallel
+  const results = await Promise.all(
+    sitemapCollections.map((config) => {
+      const fetcher = collectionFetchers[config.slug]
+      if (!fetcher) {
+        console.warn(`[sitemap] No fetcher for collection "${config.slug}"`)
+        return Promise.resolve({ docs: [] })
       }
+      return fetcher()
     }),
-    ...blogPosts.map((bp) => ({
-      loc: `${baseUrl}/blog/${bp.slug}`,
-      lastmod: bp.updatedAt,
-      changefreq: 'weekly' as const,
-      priority: 0.5,
-    })),
-    ...pages.map((p) => ({
-      loc: `${baseUrl}/${p.slug}`,
-      lastmod: p.updatedAt,
-      changefreq: 'monthly' as const,
-      priority: 0.4,
-    })),
+  )
+
+  const urls: Array<{ loc: string; lastmod?: string; changefreq: string; priority: number }> = [
+    { loc: baseUrl, changefreq: 'weekly', priority: 1.0 },
+    ...sitemapCollections.flatMap((config, i) =>
+      results[i].docs.map((doc) => ({
+        loc: `${baseUrl}${config.pathPrefix}${config.getPath(doc)}`,
+        lastmod: doc.updatedAt,
+        changefreq: config.changefreq,
+        priority: config.priority,
+      })),
+    ),
   ]
 
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>

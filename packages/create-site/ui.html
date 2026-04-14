@@ -457,6 +457,28 @@
   .btn-validate:hover { background: rgba(139,92,246,0.15); border-color: rgba(139,92,246,0.4); }
   .btn-validate:disabled { opacity: 0.4; cursor: not-allowed; }
 
+  /* ── Generate Panel ── */
+  .generate-panel {
+    display: none; margin-top: 1rem;
+  }
+  .generate-panel.visible { display: block; animation: fadeSlideIn 400ms ease-out; }
+  .generate-panel .gen-status {
+    display: flex; align-items: center; gap: 0.75rem;
+    padding: 1rem 1.25rem; border-radius: var(--radius-md);
+    background: var(--glass-bg); border: 1px solid var(--glass-border);
+    margin-top: 0.75rem;
+  }
+  .generate-panel .gen-status.ready { border-color: var(--accent); }
+  .generate-panel .gen-status.running { border-color: #f59e0b; }
+  .generate-panel .gen-status.done { border-color: #22c55e; }
+  .gen-desc {
+    background: var(--surface-dark); border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm); padding: 12px 16px;
+    color: var(--text-secondary); font-size: 0.9rem;
+    margin-top: 0.75rem; max-height: 100px; overflow-y: auto;
+    font-style: italic;
+  }
+
   /* ── Scrollbar ── */
   ::-webkit-scrollbar { width: 5px; height: 5px; }
   ::-webkit-scrollbar-track { background: transparent; }
@@ -536,6 +558,14 @@
     <div class="services-grid" id="servicesGrid"></div>
   </div>
 
+  <!-- 4. Business Description (optional, shown when Payload is selected) -->
+  <div class="card" id="cardBusiness">
+    <div class="section-title">4. Describe Your Business</div>
+    <p style="color:var(--text-secondary);font-size:0.9rem;margin-bottom:1rem;">Describe your business in plain English. AI will generate your website structure — pages, content, navigation, CRM pipeline, and email sequences tailored to your business.</p>
+    <textarea id="businessDescription" rows="5" placeholder="e.g., Paws & Claws dog grooming in Austin, TX. Three locations: Downtown, South Lamar, Round Rock. Services: full grooming, bath & brush, nail trimming, teeth cleaning. Premium brand, appointment-based." style="width:100%;padding:12px 16px;border-radius:var(--radius-sm);border:1px solid var(--glass-border);background:var(--surface-dark);color:var(--text-primary);font-family:inherit;font-size:0.95rem;resize:vertical;min-height:100px;"></textarea>
+    <p style="color:var(--text-muted);font-size:0.8rem;margin-top:0.5rem;">Optional — skip this to configure manually later. You can always generate later from the dashboard.</p>
+  </div>
+
   <!-- Create Project -->
   <div class="card" id="cardCreate">
     <button class="btn-primary" id="createBtn" onclick="createProject()" disabled>Create Project</button>
@@ -568,6 +598,19 @@
     </div>
     <div class="validate-output" id="validateOutput" style="display:none"></div>
     <div class="validate-summary" id="validateSummary"></div>
+  </div>
+
+  <!-- Generate Website -->
+  <div class="generate-panel" id="generatePanel">
+    <div class="section-title">AI Website Generation</div>
+    <div class="gen-desc" id="genDesc"></div>
+    <div class="gen-status" id="genStatus"></div>
+    <div style="display:flex;gap:0.75rem;margin-top:0.75rem;">
+      <button class="btn-primary" id="generateBtn" onclick="generateWebsite()" style="flex:1;">Generate Website</button>
+      <button class="btn-outline btn-sm" id="stopGenBtn" onclick="stopGeneration()" style="display:none;">Stop</button>
+      <button class="btn-outline btn-sm" onclick="copyGenerationPrompt()">Copy Prompt</button>
+    </div>
+    <div class="terminal" id="genTerminal" style="margin-top:0.75rem;"></div>
   </div>
 
   <!-- Dev Servers -->
@@ -671,6 +714,11 @@
         case 'all-stopped': onAllStopped(); break;
         case 'validate-log': appendValidateLog(msg.data); break;
         case 'validate-done': onValidateDone(msg.data); break;
+        case 'gen-log': onGenLog(msg.data); break;
+        case 'gen-done': onGenDone(msg.data); break;
+        case 'gen-status':
+          $('genStatus').textContent = msg.data === 'starting' ? 'Starting Claude Code...' : msg.data;
+          break;
       }
     };
     evtSource.onerror = function() {
@@ -829,6 +877,7 @@
     for (var i = 0; i < cards.length; i++) cards[i].classList.remove('active');
     if (selectedPreset) $('preset-' + id).classList.add('active');
     validateForm();
+    updateBusinessCard();
   }
 
   // -- Services (attach click listener ONCE) --
@@ -895,12 +944,18 @@
     for (var i = 0; i < cards.length; i++) cards[i].classList.remove('active');
     renderServices();
     validateForm();
+    updateBusinessCard();
   }
 
   // -- Form Validation --
   function validateForm() {
     var valid = selectedPath && projectName && (selectedPreset || selectedServices.size > 0);
     $('createBtn').disabled = !valid || creating;
+  }
+
+  function updateBusinessCard() {
+    // Card is always visible in New Project mode.
+    // showOpenMode() hides it; showCreateMode restores it.
   }
 
   // -- Create Project --
@@ -924,6 +979,7 @@
           location: selectedPath,
           services: Array.from(selectedServices),
           preset: selectedPreset,
+          businessDescription: ($('businessDescription') || {}).value || '',
         }),
       });
       var data = await res.json();
@@ -1000,6 +1056,15 @@
     // Note: innerHTML is safe here — values are hardcoded ('astro', 'next'), not user input
     $('serverRows').innerHTML = html;
     renderURLTable();
+
+    // Show generation panel if business description was provided
+    var desc = ($('businessDescription') || {}).value || '';
+    if (desc.trim()) {
+      $('generatePanel').classList.add('visible');
+      $('genDesc').textContent = desc;
+      $('genStatus').className = 'gen-status ready';
+      $('genStatus').textContent = 'Ready to generate. Click "Generate Website" to start.';
+    }
   }
 
   function serverRowHTML(id, name) {
@@ -1252,6 +1317,7 @@
     $('serverPanel').classList.remove('visible');
     $('urlPanel').classList.remove('visible');
     $('validatePanel').classList.remove('visible');
+    $('generatePanel').classList.remove('visible');
     $('twentyNote').classList.remove('visible');
     // Reset server states
     for (var key in serverStates) {
@@ -1351,6 +1417,7 @@
     $('modeSelector').style.display = '';
     $('cardName').style.display = 'none';
     $('cardStack').style.display = 'none';
+    $('cardBusiness').style.display = 'none';
     $('cardCreate').style.display = 'none';
     $('openActionCard').style.display = '';
     $('cardFolder').style.display = '';
@@ -1373,6 +1440,7 @@
     $('modeSelector').style.display = '';
     $('cardName').style.display = '';
     $('cardStack').style.display = '';
+    $('cardBusiness').style.display = '';
     $('cardCreate').style.display = '';
     $('openActionCard').style.display = 'none';
     $('cardFolder').style.display = '';
@@ -1430,6 +1498,13 @@
       $('headerSubtitle').appendChild(switchLink);
       showServerPanel();
       fetchProjectPorts();
+      // Check for generation manifest
+      if (data.hasManifest) {
+        $('generatePanel').classList.add('visible');
+        $('genDesc').textContent = data.manifestDescription || 'Business description saved. Use Claude Code to generate.';
+        $('genStatus').className = 'gen-status ready';
+        $('genStatus').textContent = 'Ready to generate. Click "Generate Website" to start.';
+      }
     } catch(err) {
       $('openErrorBanner').textContent = err.message;
       $('openErrorBanner').classList.add('visible');
@@ -1466,6 +1541,7 @@
     $('serverPanel').classList.remove('visible');
     $('urlPanel').classList.remove('visible');
     $('validatePanel').classList.remove('visible');
+    $('generatePanel').classList.remove('visible');
     // Show all creation cards
     $('cardFolder').style.display = '';
     $('cardName').style.display = '';
@@ -1505,6 +1581,95 @@
     renderPresets();
     renderServices();
     validateForm();
+  };
+
+  // -- Generation --
+  var generating = false;
+
+  window.generateWebsite = async function() {
+    if (generating) return;
+
+    // Check Claude Code availability first
+    try {
+      var check = await fetch('/api/claude-check');
+      var checkData = await check.json();
+      if (!checkData.available) {
+        $('genStatus').className = 'gen-status';
+        $('genStatus').innerHTML = '<span style="color:#ef4444;">Claude Code CLI not found.</span><br><code style="font-size:0.85rem;color:var(--text-secondary);">npm install -g @anthropic-ai/claude-code</code><br><span style="color:var(--text-muted);font-size:0.85rem;">Then authenticate with: claude</span>';
+        return;
+      }
+    } catch (err) {
+      $('genStatus').className = 'gen-status';
+      $('genStatus').textContent = 'Error checking Claude Code: ' + err.message;
+      return;
+    }
+
+    generating = true;
+    $('generateBtn').textContent = 'Generating...';
+    $('generateBtn').disabled = true;
+    $('stopGenBtn').style.display = 'inline-flex';
+    $('genTerminal').classList.add('visible');
+    $('genTerminal').textContent = '';
+    $('genStatus').className = 'gen-status running';
+    $('genStatus').textContent = 'Claude Code is generating your website...';
+
+    var desc = $('genDesc').textContent;
+
+    try {
+      await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectPath: projectPath,
+          businessDescription: desc,
+        }),
+      });
+    } catch (err) {
+      generating = false;
+      $('generateBtn').textContent = 'Generate Website';
+      $('generateBtn').disabled = false;
+      $('stopGenBtn').style.display = 'none';
+      $('genStatus').className = 'gen-status';
+      $('genStatus').textContent = 'Error: ' + err.message;
+    }
+  };
+
+  window.stopGeneration = async function() {
+    await fetch('/api/stop-generate', { method: 'POST' });
+    $('genStatus').className = 'gen-status';
+    $('genStatus').textContent = 'Generation stopped.';
+  };
+
+  function onGenLog(text) {
+    var el = $('genTerminal');
+    el.textContent += text;
+    el.scrollTop = el.scrollHeight;
+  }
+
+  function onGenDone(data) {
+    generating = false;
+    $('generateBtn').disabled = false;
+    $('stopGenBtn').style.display = 'none';
+    if (data.code === 0) {
+      $('generateBtn').textContent = 'Generation Complete!';
+      $('genStatus').className = 'gen-status done';
+      $('genStatus').textContent = 'Website generated successfully! Start your dev servers above to preview.';
+    } else {
+      $('generateBtn').textContent = 'Retry Generation';
+      $('genStatus').className = 'gen-status';
+      $('genStatus').textContent = 'Generation exited with code ' + data.code + '. Check terminal output above.';
+    }
+  }
+
+  // -- Copy Generation Prompt --
+  window.copyGenerationPrompt = function() {
+    var desc = $('genDesc').textContent;
+    var prompt = 'Use the generation_protocol prompt with this business description:\n\n"' + desc + '"';
+    navigator.clipboard.writeText(prompt).then(function() {
+      var btn = event.target;
+      btn.textContent = 'Copied!';
+      setTimeout(function() { btn.textContent = 'Copy Generation Prompt'; }, 2000);
+    });
   };
 
   // -- Boot --
