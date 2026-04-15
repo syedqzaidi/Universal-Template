@@ -1167,6 +1167,39 @@ async function renameProject(projectName) {
       }
     });
   }
+
+  // Update import statements in source files to match renamed package
+  // package.json deps are renamed above, but source files still reference @template/shared
+  if (slug !== 'template') {
+    const dirsToUpdate = [];
+    if (keepAstro) dirsToUpdate.push('templates/astro-site/src');
+    if (keepNext) dirsToUpdate.push('templates/next-app/src');
+    dirsToUpdate.push('packages/shared/src');
+
+    for (const dir of dirsToUpdate) {
+      const fullDir = path.join(ROOT, dir);
+      try {
+        await replaceInDir(fullDir, `@template/shared`, `@${slug}/shared`);
+      } catch {}
+    }
+  }
+}
+
+async function replaceInDir(dirPath, search, replacement) {
+  const entries = await fs.readdir(dirPath, { withFileTypes: true });
+  for (const entry of entries) {
+    const fullPath = path.join(dirPath, entry.name);
+    if (entry.isDirectory()) {
+      await replaceInDir(fullPath, search, replacement);
+    } else if (/\.(ts|tsx|astro|mjs|js)$/.test(entry.name)) {
+      try {
+        const content = await fs.readFile(fullPath, 'utf-8');
+        if (content.includes(search)) {
+          await fs.writeFile(fullPath, content.replaceAll(search, replacement));
+        }
+      } catch {}
+    }
+  }
 }
 
 function printSummary(selections, projectName) {
