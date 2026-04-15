@@ -577,8 +577,55 @@ Start now. Read the reference files first, then begin generating.`;
       proc.on('close', (code, signal) => {
         console.log(`[gen-close] code=${code} signal=${signal}`);
         broadcast('gen-log', `\n[GUI] Claude exited with code ${code}${signal ? ` (signal: ${signal})` : ''}\n`);
-        broadcast('gen-done', { code });
         delete processes.generate;
+
+        // After successful generation, check for seed script and run it
+        const seedScript = path.join(projPath, 'scripts', 'seed-content.ts');
+        if (code === 0 && fs.existsSync(seedScript)) {
+          broadcast('gen-log', '\n[GUI] Seed script found — starting Payload and seeding content...\n');
+          broadcast('gen-status', 'seeding');
+
+          // Start Next.js (Payload), wait for it to be ready, run seed, then stop
+          const seedCmd = [
+            `cd "${projPath}"`,
+            // Start Next.js in background, capture PID
+            `pnpm dev:next > /tmp/payload-seed.log 2>&1 &`,
+            `PAYLOAD_PID=$!`,
+            // Wait for Payload to be ready (poll /api/health or just wait)
+            `echo "[GUI] Waiting for Payload to start..."`,
+            `for i in $(seq 1 60); do`,
+            `  if curl -s http://localhost:$(grep NEXTJS "${projPath}/.ports" 2>/dev/null | cut -d= -f2 || echo 3100)/api 2>/dev/null | grep -q ""; then break; fi`,
+            `  sleep 2`,
+            `done`,
+            `echo "[GUI] Running seed script..."`,
+            `npx tsx scripts/seed-content.ts 2>&1`,
+            `SEED_EXIT=$?`,
+            `echo "[GUI] Seed script exited with code $SEED_EXIT"`,
+            // Stop Payload
+            `kill $PAYLOAD_PID 2>/dev/null`,
+            `wait $PAYLOAD_PID 2>/dev/null`,
+            `exit $SEED_EXIT`,
+          ].join('\n');
+
+          const seedProc = spawn('bash', ['-c', seedCmd], {
+            cwd: projPath,
+            env: { ...process.env, FORCE_COLOR: '0' },
+          });
+
+          seedProc.stdout.on('data', d => broadcast('gen-log', d.toString()));
+          seedProc.stderr.on('data', d => broadcast('gen-log', d.toString()));
+          seedProc.on('close', (seedCode) => {
+            console.log(`[seed-close] code=${seedCode}`);
+            if (seedCode === 0) {
+              broadcast('gen-log', '\n[GUI] Content seeded successfully!\n');
+            } else {
+              broadcast('gen-log', `\n[GUI] Seed script failed (code ${seedCode}). You can run it manually later: npx tsx scripts/seed-content.ts\n`);
+            }
+            broadcast('gen-done', { code: seedCode === 0 ? 0 : code });
+          });
+        } else {
+          broadcast('gen-done', { code });
+        }
       });
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
