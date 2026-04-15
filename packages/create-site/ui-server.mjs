@@ -486,7 +486,8 @@ export function startUI(args) {
       // This avoids shell escaping issues with -p '...' for long prompts
       const proc = spawn('claude', [
         '--print',
-        '--output-format', 'text',
+        '--output-format', 'stream-json',
+        '--verbose',
       ], {
         cwd: projPath,
         env: { ...process.env, FORCE_COLOR: '0' },
@@ -498,19 +499,51 @@ export function startUI(args) {
       proc.stdin.end();
 
       processes.generate = { proc, port: null };
+      broadcast('gen-log', `[GUI] Spawned claude (PID ${proc.pid}) in ${projPath}\n`);
+      broadcast('gen-log', `[GUI] Prompt: ${prompt.slice(0, 100)}...\n`);
 
+      // Parse stream-json output: each line is a JSON object
+      // We extract text content from assistant messages
+      let stdoutBuf = '';
       proc.stdout.on('data', d => {
-        broadcast('gen-log', d.toString());
+        stdoutBuf += d.toString();
+        const lines = stdoutBuf.split('\n');
+        stdoutBuf = lines.pop() || ''; // keep incomplete last line in buffer
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            const msg = JSON.parse(line);
+            // Extract text from different message types
+            if (msg.type === 'assistant' && msg.message?.content) {
+              for (const block of msg.message.content) {
+                if (block.type === 'text' && block.text) {
+                  broadcast('gen-log', block.text);
+                } else if (block.type === 'tool_use') {
+                  broadcast('gen-log', `\n[Tool: ${block.name}]\n`);
+                }
+              }
+            } else if (msg.type === 'result' && msg.result) {
+              broadcast('gen-log', '\n' + (typeof msg.result === 'string' ? msg.result : JSON.stringify(msg.result, null, 2)));
+            }
+          } catch {
+            // Not JSON — output raw
+            broadcast('gen-log', line + '\n');
+          }
+        }
       });
       proc.stderr.on('data', d => {
-        broadcast('gen-log', d.toString());
+        const text = d.toString();
+        broadcast('gen-log', text);
       });
       proc.on('error', err => {
+        console.log('[gen-error]', err.message);
         broadcast('gen-log', `Failed: ${err.message}\n`);
         broadcast('gen-done', { code: 1, error: err.message });
         delete processes.generate;
       });
-      proc.on('close', code => {
+      proc.on('close', (code, signal) => {
+        console.log(`[gen-close] code=${code} signal=${signal}`);
+        broadcast('gen-log', `\n[GUI] Claude exited with code ${code}${signal ? ` (signal: ${signal})` : ''}\n`);
         broadcast('gen-done', { code });
         delete processes.generate;
       });
