@@ -520,6 +520,7 @@ Start now. Read the reference files first, then begin generating.`;
         '--print',
         '--output-format', 'stream-json',
         '--verbose',
+        '--allowedTools', 'Read,Write,Edit,Bash,Glob,Grep,Agent',
       ], {
         cwd: projPath,
         env: { ...process.env, FORCE_COLOR: '0' },
