@@ -458,29 +458,61 @@ export function startUI(args) {
 
       broadcast('gen-status', 'starting');
 
-      // Build the prompt to pipe via stdin to Claude Code
-      const prompt = [
-        `You are generating a complete website for this business. Follow the generation protocol in the project CLAUDE.md.`,
-        ``,
-        `Business: ${desc}`,
-        ``,
-        `Read CLAUDE.md for the full generation protocol and available MCP tools. Then execute the 10-phase generation protocol:`,
-        ``,
-        `1. Analyze the business - identify entities, relationships, cross-products, CRM pipeline, email sequences`,
-        `2. Generate Payload CMS collections for each entity`,
-        `3. Generate cross-product collections if applicable`,
-        `4. Generate any new blocks needed`,
-        `5. Generate Astro pages for each route`,
-        `6. Generate JSON-LD schemas`,
-        `7. Configure CRM pipeline (deferred if Twenty not available)`,
-        `8. Generate email templates (deferred if Resend not available)`,
-        `9. Seed collections with realistic content`,
-        `10. Generate navigation config and validate builds`,
-        ``,
-        `Use the MCP tools: analyze_business, generate_collection, generate_cross_product_collection, generate_page, generate_block, generate_schema, configure_crm_pipeline, generate_email_sequence, seed_collection, generate_nav, validate_generation.`,
-        ``,
-        `All generated code must compile. Update .generation-manifest.json after each step.`,
-      ].join('\n');
+      // Build a fully autonomous prompt — no questions, no MCP tools, direct file generation
+      const prompt = `You are an expert web developer. Generate a complete website for this business by writing files directly. Do NOT ask questions — make reasonable decisions autonomously.
+
+BUSINESS: ${desc}
+
+CRITICAL RULES:
+- NEVER ask the user questions. Decide everything yourself based on the business description.
+- NEVER try to use MCP tools — they are not available. Write files directly using the Write and Edit tools.
+- Follow the existing codebase patterns EXACTLY. Read existing files first, then create new ones matching the same style.
+- All generated code must be valid TypeScript that compiles.
+
+STEP 1: Read the codebase structure
+- Read CLAUDE.md to understand the architecture
+- Read templates/next-app/src/collections/Services.ts as the collection pattern reference
+- Read templates/astro-site/src/pages/services/[slug].astro as the page pattern reference
+- Read templates/astro-site/src/pages/services/index.astro as the listing page reference
+- Read templates/next-app/src/blocks/index.ts to see available blocks
+- Read templates/astro-site/src/lib/nav-config.ts for navigation config
+- Read templates/astro-site/src/lib/sitemap-config.ts for sitemap config
+
+STEP 2: Customize collections for the business
+- The template already has Services, Locations, ServicePages, BlogPosts, FAQs, Testimonials, TeamMembers collections
+- Edit templates/next-app/src/globals/SiteSettings.ts default values if applicable
+- These collections are generic and work for most businesses — customize field descriptions and admin labels if needed
+
+STEP 3: Update navigation
+- Edit templates/astro-site/src/lib/nav-config.ts to use terminology that fits the business (e.g., "Services" might become "Our Services" or the nav stays the same)
+
+STEP 4: Create seed data script
+- Create a file scripts/seed-content.ts that uses the Payload local API to seed realistic content:
+  - 4-8 services appropriate for the business
+  - 2-5 locations if the business described locations
+  - 5-10 FAQs relevant to the business
+  - 5-8 testimonials with realistic names and reviews
+  - 3-5 team members with appropriate titles
+  - 3-5 blog post ideas (title, excerpt, category)
+- The seed script should be runnable via: npx tsx scripts/seed-content.ts
+
+STEP 5: Update site metadata
+- Edit .env.template to update NEXT_PUBLIC_SITE_NAME default
+- Create/update any business-specific content in the existing page files
+
+STEP 6: Generate email templates
+- Create 2-3 React Email templates in templates/next-app/src/emails/ following the existing pattern (read templates/next-app/src/emails/welcome-contact.tsx as reference)
+- Templates should match the business type (e.g., booking confirmation, follow-up, review request)
+
+STEP 7: Write generation manifest
+- Write .generation-manifest.json with the business model and completed steps
+
+STEP 8: Validate
+- Run: cd templates/next-app && npx tsc --noEmit
+- Fix any TypeScript errors
+
+Start now. Read the reference files first, then begin generating.`;
+
 
       // Spawn claude with --print, pipe the prompt via stdin
       // This avoids shell escaping issues with -p '...' for long prompts
